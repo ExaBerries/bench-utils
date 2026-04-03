@@ -1,0 +1,59 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Linker files
+*.ilk
+
+# Debugger Files
+*.pdb
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# debug information files
+*.dwo
+
+.DS_Store
+
+# build dir wholesale
+build/*
+
+# subprojects - only wrap files
+subprojects/*
+!subprojects/*.wrap
+
+# docs - only actual tex file
+docs/*
+!docs/*.tex
+!docs/*.pdf
+
+# dumped images for debugging
+dump
+dump/*
