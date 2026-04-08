@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <charconv>
 #include <string_view>
+#include <string>
 #include <type_traits>
 
 namespace bench_utils {
@@ -18,18 +19,18 @@ namespace bench_utils {
 		return value;
 	}
 
-	// comma separated list -> opt<std:;vector<std::string_view>>
-	inline std::optional<std::vector<std::string_view>> parse_list(std::string_view list_sv) noexcept {
+	// comma separated list -> opt<std::vector<std::string_view>>
+	inline std::optional<std::vector<std::string>> parse_list(std::string_view list_sv) noexcept {
 		if (list_sv == "auto") {
 			return std::nullopt;
 		}
-		std::vector<std::string_view> result;
+		std::vector<std::string> result;
 		std::string_view sv = list_sv;
 		size_t start = 0;
 		while (true) {
 			auto comma = sv.find(',', start);
 			std::string token = std::string(sv.substr(start, comma - start));
-			result.push_back(token.c_str());
+			result.push_back(token);
 			if (comma == std::string_view::npos) {
 				break;
 			}

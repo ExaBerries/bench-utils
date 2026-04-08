@@ -29,6 +29,7 @@
 #include <thread>
 #include <chrono>
 #include <type_traits>
+#include <array>
 
 namespace bench_utils {
 	struct harness_run {
@@ -264,8 +265,8 @@ namespace bench_utils {
 			return parsed_range_int{min, max, stride};
 		}
 
-		template <std::integral T>
-		inline std::optional<std::vector<T>> filter_for_range_str(std::string_view str, std::vector<T> values, T default_min, T default_max, T default_stride) noexcept {
+		template <std::integral T, std::size_t AS>
+		inline std::optional<std::vector<T>> filter_for_range_str(std::string_view str, const std::array<T, AS>& values, T default_min, T default_max, T default_stride) noexcept {
 			auto parsed_range_opt = parse_range(str, default_min, default_max, default_stride);
 			if (!parsed_range_opt) {
 				return std::nullopt;
@@ -281,12 +282,16 @@ namespace bench_utils {
 				return std::nullopt;
 			}
 
+			if (stride <= 0) {
+				return std::nullopt;
+			}
+
 			std::vector<T> result;
 
-			for (auto it = start; it <= end; std::advance(it, stride)) {
+			for (auto it = start; it <= end; it += stride) {
 				result.push_back(*it);
 
-				if (std::distance(it, end) < stride) {
+				if (it + stride > end) {
 					break;
 				}
 			}
@@ -294,7 +299,8 @@ namespace bench_utils {
 			return result;
 		}
 
-		inline std::optional<std::vector<std::string_view>> filter_for_range_str(std::string_view str, std::vector<std::string_view> values, std::string_view default_min, std::string_view default_max, uint32_t default_stride) noexcept {
+		template <std::size_t AS>
+		inline std::optional<std::vector<std::string>> filter_for_range_str(std::string_view str, const std::array<std::string_view, AS>& values, std::string_view default_min, std::string_view default_max, uint32_t default_stride) noexcept {
 			auto tokens = parse_min_max_stride_str(str);
 
 			auto start = std::find(values.begin(), values.end(), tokens.min.empty() ? default_min : tokens.min);
@@ -304,7 +310,7 @@ namespace bench_utils {
 				return std::nullopt;
 			}
 
-			std::vector<std::string_view> result;
+			std::vector<std::string> result;
 			auto stride = default_stride;
 			if (!tokens.stride.empty()) {
 				auto stride_opt = parse_int<uint32_t>(tokens.stride);
@@ -314,10 +320,14 @@ namespace bench_utils {
 				stride = stride_opt.value();
 			}
 
-			for (auto it = start; it <= end; std::advance(it, stride)) {
-				result.push_back(*it);
+			if (stride == 0) {
+				return std::nullopt;
+			}
 
-				if (std::distance(it, end) < stride) {
+			for (auto it = start; it <= end; it += stride) {
+				result.push_back(std::string(*it));
+
+				if (it + stride > end) {
 					break;
 				}
 			}
