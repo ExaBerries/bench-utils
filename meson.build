@@ -66,6 +66,9 @@ add_project_arguments(cpp_compiler.get_supported_arguments([
 	'/D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR' # fix abi issue with older redist
 ]), language: 'cpp')
 
+lyra_proj = subproject('lyra')
+lyra_dep = lyra_proj.get_variable('lyra_dep')
+
 base_name = 'bench-utils-' + meson.project_version()
 
 sources_core = [
@@ -83,12 +86,15 @@ lib = static_library(
 	base_name,
 	sources_core,
 	include_directories: inc_dir,
+	dependencies: [
+		lyra_dep
+	],
 	install: false
 )
 
 bench_utils_dep = declare_dependency(
 	include_directories: inc_dir,
-	link_with: lib
+	link_with: lib,
 )
 
 if host_machine.system() != 'windows'
@@ -98,10 +104,14 @@ if host_machine.system() != 'windows'
 	test_exe = executable(
 		base_name + '-utest',
 		[
-			'test/src/buffer_test.cpp'
+			'test/src/buffer_test.cpp',
+			'test/src/harness_test.cpp'
 		],
 		include_directories: inc_dir,
-		dependencies: gtest_dep,
+		dependencies: [
+			gtest_dep,
+			lyra_dep
+		],
 		link_with: [
 			lib
 		]

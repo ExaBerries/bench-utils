@@ -5,16 +5,16 @@
 TEST(Buffer, DefaultAlloc) {
 	using namespace bench_utils;
 
-	buffer<int> buf(64);
+	buffer<uint32_t> buf(64);
 	buf.free();
 }
 
 TEST(Buffer, NonLP) {
 	using namespace bench_utils;
 
-	lp_flex_allocator_t<int> alloc(false);
+	lp_flex_allocator_t<uint32_t> alloc(false);
 
-	buffer<int, lp_flex_allocator_t<int>> buf(64u * 1024u, alloc);
+	buffer<uint32_t, lp_flex_allocator_t<uint32_t>> buf(64u * 1024u, alloc);
 	ASSERT_NE(buf, nullptr);
 	buf.free();
 }
@@ -22,9 +22,9 @@ TEST(Buffer, NonLP) {
 TEST(Buffer, LP) {
 	using namespace bench_utils;
 
-	lp_flex_allocator_t<int> alloc(true);
+	lp_flex_allocator_t<uint32_t> alloc(true);
 
-	buffer<int, lp_flex_allocator_t<int>> buf(64u * 1024u, alloc);
+	buffer<uint32_t, lp_flex_allocator_t<uint32_t>> buf(64u * 1024u, alloc);
 	ASSERT_NE(buf, nullptr);
 	buf.free();
 }
