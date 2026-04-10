@@ -77,6 +77,7 @@ sources_core = [
 	'src/bench_utils/threading/topology.cpp',
 	'src/bench_utils/timer.cpp',
 	'src/bench_utils/format.cpp',
+	'src/bench_utils/console.cpp',
 	'src/bench_utils/isa/x86/cpuid.cpp'
 ]
 
