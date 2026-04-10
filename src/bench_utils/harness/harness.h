@@ -35,7 +35,7 @@ namespace bench_utils {
 	struct harness_run {
 		std::string name{};
 		uint32_t est_runtime_s = 0ull;
-		std::function<double()> run_bench;
+		std::function<std::optional<double>()> run_bench;
 		std::vector<std::optional<double>> sub_run_results{};
 	};
 
