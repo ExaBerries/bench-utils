@@ -41,7 +41,7 @@ namespace bench_utils {
 
 	template <typename HV>
 	concept HarnessVariable = requires(HV hv, std::string_view opt_str) {
-		{ HV::name } -> std::convertible_to<std::string>;
+		{ HV::name() } -> std::convertible_to<std::string>;
 		{ HV::gen(opt_str) } -> std::same_as<std::optional<std::vector<harness_run>>>;
 	};
 
@@ -63,7 +63,7 @@ namespace bench_utils {
 				lyra::opt(var, "var")
 					["--harness-var"]
 					("Variable for the harness to test over")
-					.choices({HARNESS_VARIABLES::name...})
+					.choices({HARNESS_VARIABLES::name()...})
 			);
 			cli.add_argument(
 				lyra::opt(num_sub_runs, "harness-sub-runs")
@@ -79,7 +79,7 @@ namespace bench_utils {
 
 		void run() noexcept {
 			std::optional<std::vector<harness_run>> runs_opt{};
-			bool matched = ((var == HARNESS_VARIABLES::name ? (runs_opt = HARNESS_VARIABLES::gen(opt_str), true) : false) || ...);
+			bool matched = ((var == HARNESS_VARIABLES::name() ? (runs_opt = HARNESS_VARIABLES::gen(opt_str), true) : false) || ...);
 
 			if (!matched) {
 				std::cerr << "unknown var " << var << std::endl;

@@ -18,12 +18,14 @@ namespace bench_utils {
 	}
 
 	struct none_var {
-		static constexpr std::string name = "none";
+		[[nodiscard]] static std::string name() noexcept {
+			return "none";
+		}
 
-		static std::optional<std::vector<harness_run>> gen([[maybe_unused]] std::string_view opt_str) noexcept {
+		[[nodiscard]] static std::optional<std::vector<harness_run>> gen([[maybe_unused]] std::string_view opt_str) noexcept {
 			std::vector<harness_run> output;
 			output.emplace_back(harness_run{
-				name,
+				name(),
 				1u,
 				[&]() -> double {
 					cmdline_config config;
@@ -38,7 +40,9 @@ namespace bench_utils {
 	};
 
 	struct size_var {
-		static constexpr std::string name = "size";
+		[[nodiscard]] static std::string name() noexcept {
+			return "size";
+		}
 
 		static std::optional<std::vector<harness_run>> gen(std::string_view opt_str) noexcept {
 			std::vector<harness_run> output;
@@ -108,7 +112,6 @@ namespace bench_utils {
 	};
 
 	struct fake_isa_var {
-		static constexpr std::string name = "isa";
 		static constexpr auto VALID_ISAS = std::to_array<std::string_view>({
 			"sse2",
 			"sse4.1",
@@ -119,6 +122,10 @@ namespace bench_utils {
 			"avx512vl",
 			"avx512f"
 		});
+
+		[[nodiscard]] static std::string name() noexcept {
+			return "isa";
+		}
 
 		static std::optional<std::vector<harness_run>> gen(std::string_view opt_str) noexcept {
 			std::vector<harness_run> output;
