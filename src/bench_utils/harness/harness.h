@@ -39,15 +39,15 @@ namespace bench_utils {
 		std::vector<std::optional<double>> sub_run_results{};
 	};
 
-	template <typename HV>
-	concept HarnessVariable = requires(HV hv, std::string_view opt_str) {
+	template <typename HV, typename CONTEXT>
+	concept HarnessVariable = requires(HV hv, CONTEXT context, std::string_view opt_str) {
 		{ HV::name() } -> std::convertible_to<std::string>;
-		{ HV::gen(opt_str) } -> std::same_as<std::optional<std::vector<harness_run>>>;
+		{ HV::gen(opt_str, context) } -> std::same_as<std::optional<std::vector<harness_run>>>;
 	};
 
-	template <typename ... HARNESS_VARIABLES>
+	template <typename CONTEXT, typename ... HARNESS_VARIABLES>
 	struct harness_t {
-		static_assert((HarnessVariable<HARNESS_VARIABLES> && ...), "All HARNESS_VARIABLES must satisfy HarnessVariable concept");
+		static_assert((HarnessVariable<HARNESS_VARIABLES, CONTEXT> && ...), "All HARNESS_VARIABLES must satisfy HarnessVariable concept");
 
 		uint32_t wait_time_ms = 2000u;
 		uint32_t num_sub_runs = 3u;
@@ -77,9 +77,9 @@ namespace bench_utils {
 			);
 		}
 
-		void run() noexcept {
+		void run(CONTEXT context) noexcept {
 			std::optional<std::vector<harness_run>> runs_opt{};
-			bool matched = ((var == HARNESS_VARIABLES::name() ? (runs_opt = HARNESS_VARIABLES::gen(opt_str), true) : false) || ...);
+			bool matched = ((var == HARNESS_VARIABLES::name() ? (runs_opt = HARNESS_VARIABLES::gen(opt_str, context), true) : false) || ...);
 
 			if (!matched) {
 				std::cerr << "unknown var " << var << std::endl;
