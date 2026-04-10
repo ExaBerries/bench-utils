@@ -32,7 +32,7 @@ namespace bench_utils {
 			output.emplace_back(harness_run{
 				name(),
 				1u,
-				[context]() -> double {
+				[context]() -> std::optional<double> {
 					cmdline_config config = context.config_ref;
 					config.size = 5u;
 					config.score = 25.0;
@@ -65,7 +65,7 @@ namespace bench_utils {
 						output.emplace_back(harness_run{
 							std::to_string(try_parse.value()),
 							1u,
-							[val, context]() -> double {
+							[val, context]() -> std::optional<double> {
 								cmdline_config config = context.config_ref;
 								config.size = val;
 								config.score = 25.0;
@@ -85,7 +85,7 @@ namespace bench_utils {
 						output.emplace_back(harness_run{
 							std::to_string(size),
 							1u,
-							[size, context]() -> double {
+							[size, context]() -> std::optional<double> {
 								cmdline_config config = context.config_ref;
 								config.size = size;
 								config.score = 25.0;
@@ -103,7 +103,7 @@ namespace bench_utils {
 				output.emplace_back(harness_run{
 					std::to_string(i),
 					1u,
-					[i, context]() -> double {
+					[i, context]() -> std::optional<double> {
 						cmdline_config config = context.config_ref;
 						config.size = i;
 						config.score = 25.0 * i;
@@ -142,7 +142,7 @@ namespace bench_utils {
 						output.emplace_back(harness_run{
 							std::string(val),
 							1u,
-							[context]() -> double {
+							[context]() -> std::optional<double> {
 								cmdline_config config = context.config_ref;
 								config.size = 2u;
 								config.score = 25.0;
@@ -162,7 +162,7 @@ namespace bench_utils {
 						output.emplace_back(harness_run{
 							std::string(val),
 							1u,
-							[context]() -> double {
+							[context]() -> std::optional<double> {
 								cmdline_config config = context.config_ref;
 								config.size = 2u;
 								config.score = 25.0;
@@ -180,7 +180,7 @@ namespace bench_utils {
 				output.emplace_back(harness_run{
 					std::string(val),
 					1u,
-					[context]() -> double {
+					[context]() -> std::optional<double> {
 						cmdline_config config = context.config_ref;
 						config.size = 2u;
 						config.score = 25.0;
