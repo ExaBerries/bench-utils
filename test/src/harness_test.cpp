@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <bench_utils/harness/harness.h>
+#include <bench_utils/harness/harness_helpers.h>
 
 namespace bench_utils {
 	struct cmdline_config {
@@ -45,74 +46,65 @@ namespace bench_utils {
 	};
 
 	struct size_var {
+		static constexpr auto VALID_SIZES = std::to_array<uint64_t>({
+			4ull,
+			5ull,
+			7ull,
+			11ull
+		});
+
 		[[nodiscard]] static std::string name() noexcept {
 			return "size";
 		}
 
 		static std::optional<std::vector<harness_run>> gen(std::string_view opt_str, harness_context& context) noexcept {
-			std::vector<harness_run> output;
-			if (!opt_str.empty() && opt_str != "auto") {
-				auto try_parse_list = parse_list(opt_str);
-				if (try_parse_list) {
-					auto& list = try_parse_list.value();
-					for (auto sv : list) {
-						auto try_parse = parse_int<uint64_t>(sv);
-						if (!try_parse) {
-							output.clear();
-							break;
-						}
-						auto val = try_parse.value();
-						output.emplace_back(harness_run{
-							std::to_string(try_parse.value()),
-							1u,
-							[val, context]() -> std::optional<double> {
-								cmdline_config config = context.config_ref;
-								config.size = val;
-								config.score = 25.0;
-								return mock_run_bench(config);
-							},
-							{}
-						});
-					}
-					if (!output.empty()) {
-						return output;
-					}
-				}
-				auto try_parse_range = sweep_helpers::parse_range(opt_str, 3u, 8u, 4u);
-				if (try_parse_range) {
-					auto expanded = sweep_helpers::expand_range(try_parse_range.value());
-					for (auto size : expanded) {
-						output.emplace_back(harness_run{
-							std::to_string(size),
-							1u,
-							[size, context]() -> std::optional<double> {
-								cmdline_config config = context.config_ref;
-								config.size = size;
-								config.score = 25.0;
-								return mock_run_bench(config);
-							},
-							{}
-						});
-					}
-					if (!output.empty()) {
-						return output;
-					}
-				}
-			}
-			for (auto i = 3u; i < 8u; i++) {
-				output.emplace_back(harness_run{
-					std::to_string(i),
-					1u,
-					[i, context]() -> std::optional<double> {
-						cmdline_config config = context.config_ref;
-						config.size = i;
-						config.score = 25.0 * i;
-						return mock_run_bench(config);
-					},
-					{}
-				});
-			}
-			return output;
+			return sweep_helpers::make_filtered_sweep(
+				opt_str,
+				context,
+				VALID_SIZES,
+				[](const harness_context& ctx, uint64_t val) noexcept -> harness_run {
+					return harness_run{
+						std::to_string(val),
+						1ull,
+						[ctx, val]() noexcept -> std::optional<double> {
+							auto config = ctx.config_ref;
+							config.score = 25.0 * static_cast<double>(val);
+							return mock_run_bench(config);
+						},
+						{}
+					};
+				},
+				5ul,
+				11ul
+			);
+		}
+	};
+
+	struct threads_var {
+		[[nodiscard]] static std::string name() noexcept {
+			return "threads";
+		}
+
+		static std::optional<std::vector<harness_run>> gen(std::string_view opt_str, harness_context& context) noexcept {
+			return sweep_helpers::make_numeric_sweep(
+				opt_str,
+				context,
+				[](const harness_context& ctxt, uint64_t val) -> harness_run {
+					return harness_run{
+						std::to_string(val),
+						1u,
+						[val, ctxt]() noexcept -> std::optional<double> {
+							auto config = ctxt.config_ref;
+							config.size = val;
+							config.score = 25.0 * static_cast<double>(val);
+							return mock_run_bench(config);
+						},
+						{}
+					};
+				},
+				3ull,
+				8ull
+			);
 		}
 	};
 
@@ -133,63 +125,25 @@ namespace bench_utils {
 		}
 
 		static std::optional<std::vector<harness_run>> gen(std::string_view opt_str, harness_context& context) noexcept {
-			std::vector<harness_run> output;
-			if (!opt_str.empty() && opt_str != "auto") {
-				auto try_parse_range = sweep_helpers::filter_for_range_str(opt_str, VALID_ISAS, "sse2", "avx2", 1u);
-				if (try_parse_range) {
-					auto& values = try_parse_range.value();
-					for (const auto& val : values) {
-						output.emplace_back(harness_run{
-							std::string(val),
-							1u,
-							[context]() -> std::optional<double> {
-								cmdline_config config = context.config_ref;
-								config.size = 2u;
-								config.score = 25.0;
-								return mock_run_bench(config);
-							},
-							{}
-						});
-					}
-					if (!output.empty()) {
-						return output;
-					}
-				}
-				auto try_parse_list = parse_list(opt_str);
-				if (try_parse_list) {
-					auto& list = try_parse_list.value();
-					for (const auto& val : list) {
-						output.emplace_back(harness_run{
-							std::string(val),
-							1u,
-							[context]() -> std::optional<double> {
-								cmdline_config config = context.config_ref;
-								config.size = 2u;
-								config.score = 25.0;
-								return mock_run_bench(config);
-							},
-							{}
-						});
-					}
-					if (!output.empty()) {
-						return output;
-					}
-				}
-			}
-			for (auto val : VALID_ISAS) {
-				output.emplace_back(harness_run{
-					std::string(val),
-					1u,
-					[context]() -> std::optional<double> {
-						cmdline_config config = context.config_ref;
-						config.size = 2u;
-						config.score = 25.0;
-						return mock_run_bench(config);
-					},
-					{}
-				});
-			}
-			return output;
+			return sweep_helpers::make_filtered_sweep(
+				opt_str,
+				context,
+				VALID_ISAS,
+				[](const harness_context& ctx, const std::string& isa) noexcept -> harness_run {
+					return harness_run{
+						isa,
+						1u,
+						[ctx, isa]() noexcept -> std::optional<double> {
+							auto config = ctx.config_ref;
+							config.score = 25.0;
+							return mock_run_bench(config);
+						},
+						{}
+					};
+				},
+				"sse2",
+				"avx512f"
+			);
 		}
 	};
 } // namespace bench_utils
@@ -238,7 +192,7 @@ TEST(Harness, SizeSweepDefault) {
 		"--test",
 		"test",
 		"--harness-var",
-		"size"
+		"threads"
 	};
 	constexpr auto argc = argv.size();
 
@@ -249,7 +203,7 @@ TEST(Harness, SizeSweepDefault) {
 
 	harness_context h_context{std::ref(config)};
 
-	harness_t<harness_context, none_var, size_var> harness{1u, 2u};
+	harness_t<harness_context, none_var, threads_var> harness{1u, 2u};
 
 	harness.add_to_lyra(cli);
 

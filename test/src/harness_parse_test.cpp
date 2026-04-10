@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <bench_utils/harness/harness.h>
+#include <bench_utils/harness/harness_helpers.h>
 
 TEST(HarnessParse, TokenizeRange) {
 	using namespace bench_utils::sweep_helpers;
