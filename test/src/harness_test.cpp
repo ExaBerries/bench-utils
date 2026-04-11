@@ -74,8 +74,8 @@ namespace bench_utils {
 						{}
 					};
 				},
-				5ul,
-				11ul
+				static_cast<uint64_t>(5u),
+				static_cast<uint64_t>(11u)
 			);
 		}
 	};

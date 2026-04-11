@@ -56,7 +56,7 @@ namespace bench_utils {
 		template <std::integral T>
 		inline std::optional<parsed_range_int<T>> parse_range(std::string_view str, T default_min, T default_max, T default_stride) noexcept {
 			if (str.empty() || str == "auto") {
-				return parsed_range_int{default_min, default_max, default_stride};
+				return parsed_range_int<T>{default_min, default_max, default_stride};
 			}
 
 			T min = default_min;
@@ -96,7 +96,7 @@ namespace bench_utils {
 				return std::nullopt;
 			}
 
-			return parsed_range_int{min, max, stride};
+			return parsed_range_int<T>{min, max, stride};
 		}
 
 		template <std::integral T, std::size_t AS>
