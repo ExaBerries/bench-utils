@@ -34,7 +34,7 @@ namespace bench_utils {
 			} else {
 				// fallback: Win32 API
 				HANDLE h_out = GetStdHandle(STD_OUTPUT_HANDLE);
-				if (hOut == INVALID_HANDLE_VALUE) return;
+				if (h_out == INVALID_HANDLE_VALUE) return;
 
 				CONSOLE_SCREEN_BUFFER_INFO info;
 				if (!GetConsoleScreenBufferInfo(h_out, &info)) return;
