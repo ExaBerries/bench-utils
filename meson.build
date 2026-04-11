@@ -11,8 +11,6 @@ project(
 	version: '0.1.0'
 )
 
-imgdump_option = get_option('imgdump')
-
 cpp_compiler = meson.get_compiler('cpp')
 
 add_project_arguments(cpp_compiler.get_supported_arguments([
