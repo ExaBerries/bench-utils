@@ -5,8 +5,14 @@
 #include <type_traits>
 #include <new>
 #include <iostream>
+#include <concepts>
 
 namespace bench_utils {
+	template <std::integral T>
+	[[nodiscard]] constexpr T align_up(T size, T align) noexcept {
+		return (size + align - static_cast<T>(1u)) & ~(align - static_cast<T>(1u));
+	}
+
 	[[nodiscard]] uint64_t get_available_mem() noexcept;
 	[[nodiscard]] std::size_t get_large_page_size() noexcept;
 
@@ -104,7 +110,7 @@ namespace bench_utils {
 
 		[[nodiscard]] void* allocate(std::size_t bytes, std::size_t align) noexcept {
 			auto curr = reinterpret_cast<uintptr_t>(current);
-			auto aligned = (curr + align - 1u) & ~(align - 1u);
+			auto aligned = align_up(curr, align);
 			auto next = aligned + bytes;
 
 			current = reinterpret_cast<void*>(next);
