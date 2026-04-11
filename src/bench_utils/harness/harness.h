@@ -93,9 +93,12 @@ namespace bench_utils {
 
 			runs = runs_opt.value();
 
+			std::cout << "!!HARNESS!! run values:" << std::endl;
+
 			auto total_time = runs.size() * wait_time_ms / 1000u;
 			auto total_runs = 0u;
 			for (auto& run : runs) {
+				std::cout << run.name << std::endl;
 				total_time += run.est_runtime_s * num_sub_runs;
 				total_runs += num_sub_runs;
 			}
