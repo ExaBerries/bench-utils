@@ -153,7 +153,6 @@ namespace bench_utils {
 			result.waitpkg = (ecx7 & (1 << 5));
 			result.movdiri = (ecx7 & (1 << 27));
 			result.movdir64b = (ecx7 & (1 << 28));
-			result.serialize = (ecx7 & (1 << 14));
 			result.tsxldtrk = (ecx7 & (1 << 16));
 			result.pku = (ecx7 & (1 << 3));
 			result.ospke = (ecx7 & (1 << 4));
@@ -173,12 +172,34 @@ namespace bench_utils {
 
 			cpuid(7, 1, r);
 			auto eax1 = r[0];
+			auto ecx1 = r[2];
+			auto edx1 = r[3];
 
 			result.avx512_bf16 = ((eax1 & (1 << 5)) && avx512_os_enabled);
 			result.avx512_fp16 = ((eax1 & (1 << 23)) && avx512_os_enabled);
+
+			result.serialize = (ecx1 & (1 << 14));
+
+			result.avx10 = (edx1 & (1 << 19)) && avx512_os_enabled;
+			result.apx = (edx1 & (1 << 21));
+
+			if (result.avx10 && max_basic >= 0x24) {
+				cpuid(0x24, 0, r);
+				result.avx10_version = (r[1] & 0xFF);
+				auto ebx24 = r[1];
+				if (ebx24 & (1 << 18)) {
+					result.avx10_vector_length = avx10_vector_length_t::AVX_10_512;
+				} else if (ebx24 & (1 << 17)) {
+					result.avx10_vector_length = avx10_vector_length_t::AVX_10_256;
+				} else if (ebx24 & (1 << 16)) {
+					result.avx10_vector_length = avx10_vector_length_t::AVX_10_128;
+				} else {
+					result.avx10_vector_length = avx10_vector_length_t::AVX_10_LENGTH_UNKNOWN;
+				}
+			}
 		}
 
-		if (max_ext >= 0x80000001) {
+		if (max_ext >= static_cast<int32_t>(0x80000001)) {
 			cpuid(0x80000001, 0, r);
 			auto ecx8 = r[2];
 			auto edx8 = r[3];
@@ -223,19 +244,52 @@ namespace bench_utils {
 		append(ext.xop, "XOP");
 		append(ext.avx, "AVX");
 		append(ext.avx2, "AVX2");
-		append(ext.avx512f, "AVX512F");
-		append(ext.avx512bw, "AVX512BW");
-		append(ext.avx512vl, "AVX512VL");
-		append(ext.avx512dq, "AVX512DQ");
-		append(ext.avx512ifma, "AVX512IFMA");
-		append(ext.avx512pf, "AVX512PF");
-		append(ext.avx512er, "AVX512ER");
-		append(ext.avx512cd, "AVX512CD");
-		append(ext.avx512vbmi, "AVX512VBMI");
-		append(ext.avx512vbmi2, "AVX512VBMI2");
-		append(ext.avx512vnni, "AVX512VNNI");
-		append(ext.avx512bitalg, "AVX512BITALG");
-		append(ext.avx512vpopcntdq, "AVX512VPOPCNTDQ");
+		if (ext.avx10) {
+			if (!result.empty()) {
+				result += ' ';
+			}
+			result += "AVX10";
+			if (ext.avx10_version > 0) {
+				result += '.';
+				result += std::to_string(ext.avx10_version);
+			}
+			switch (ext.avx10_vector_length) {
+				case avx10_vector_length_t::AVX_10_LENGTH_UNKNOWN:
+					break;
+				case avx10_vector_length_t::AVX_10_128:
+					result += '-';
+					result += "128";
+					break;
+				case avx10_vector_length_t::AVX_10_256:
+					result += '-';
+					result += "256";
+					break;
+				case avx10_vector_length_t::AVX_10_512:
+					result += '-';
+					result += "512";
+					break;
+			};
+		} else {
+			append(ext.avx512f, "AVX512F");
+			append(ext.avx512bw, "AVX512BW");
+			append(ext.avx512vl, "AVX512VL");
+			append(ext.avx512dq, "AVX512DQ");
+			append(ext.avx512ifma, "AVX512IFMA");
+			append(ext.avx512pf, "AVX512PF");
+			append(ext.avx512er, "AVX512ER");
+			append(ext.avx512cd, "AVX512CD");
+			append(ext.avx512vbmi, "AVX512VBMI");
+			append(ext.avx512vbmi2, "AVX512VBMI2");
+			append(ext.avx512vnni, "AVX512VNNI");
+			append(ext.avx512bitalg, "AVX512BITALG");
+			append(ext.avx512vpopcntdq, "AVX512VPOPCNTDQ");
+			append(ext.avx512_bf16, "AVX512_BF16");
+			append(ext.avx512_fp16, "AVX512_FP16");
+			append(ext.avx512_4vnniw, "AVX512_4VNNIW");
+			append(ext.avx512_4fmaps, "AVX512_4FMAPS");
+			append(ext.avx512_vp2intersect, "AVX512_VP2INTERSECT");
+		}
+		append(ext.apx, "APX");
 		append(ext.gfni, "GFNI");
 		append(ext.vaes, "VAES");
 		append(ext.vpclmulqdq, "VPCLMULQDQ");
@@ -251,11 +305,6 @@ namespace bench_utils {
 		append(ext.sgx, "SGX");
 		append(ext.clwb, "CLWB");
 		append(ext.clflushopt, "CLFLUSHOPT");
-		append(ext.avx512_bf16, "AVX512_BF16");
-		append(ext.avx512_fp16, "AVX512_FP16");
-		append(ext.avx512_4vnniw, "AVX512_4VNNIW");
-		append(ext.avx512_4fmaps, "AVX512_4FMAPS");
-		append(ext.avx512_vp2intersect, "AVX512_VP2INTERSECT");
 		append(ext.amx_tile, "AMX_TILE");
 		append(ext.amx_int8, "AMX_INT8");
 		append(ext.amx_bf16, "AMX_BF16");
@@ -265,6 +314,8 @@ namespace bench_utils {
 		append(ext.fsrm, "FSRM");
 		append(ext.hreset, "HRESET");
 		append(ext.uintr, "UINTR");
+
+		append(ext.apx, "APX");
 
 		return result;
 	}

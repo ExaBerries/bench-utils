@@ -5,6 +5,13 @@
 #include <cstdint>
 
 namespace bench_utils {
+	enum struct avx10_vector_length_t {
+		AVX_10_LENGTH_UNKNOWN,
+		AVX_10_128,
+		AVX_10_256,
+		AVX_10_512
+	};
+
 	struct x86_extensions {
 		bool mmx = false;
 		bool sse = false;
@@ -69,6 +76,10 @@ namespace bench_utils {
 		bool uintr = false;
 		bool avx512_bf16 = false;
 		bool avx512_fp16 = false;
+		bool avx10 = false;
+		uint32_t avx10_version = 0;
+		avx10_vector_length_t avx10_vector_length = avx10_vector_length_t::AVX_10_LENGTH_UNKNOWN;
+		bool apx = false;
 	};
 
 	[[nodiscard]] std::string get_cpu_brand_string() noexcept;
