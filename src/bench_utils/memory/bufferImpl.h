@@ -6,7 +6,7 @@ namespace bench_utils {
 	}
 
 	template <typename TYPE, typename ALLOCATOR>
-	buffer<TYPE, ALLOCATOR>::buffer(uint64_t size_n, const ALLOCATOR& allocator) noexcept : alloc(allocator) {
+	buffer<TYPE, ALLOCATOR>::buffer(std::size_t size_n, const ALLOCATOR& allocator) noexcept : alloc(allocator) {
 		static_assert(std::is_default_constructible_v<TYPE>);
 		try {
 			this->data = alloc.allocate(size_n);
@@ -23,11 +23,11 @@ namespace bench_utils {
 	}
 
 	template <typename TYPE, typename ALLOCATOR>
-	buffer<TYPE, ALLOCATOR>::buffer(uint64_t size_n, TYPE* data_n, const ALLOCATOR& allocator) noexcept : alloc(allocator), size(size_n), data(data_n) {
+	buffer<TYPE, ALLOCATOR>::buffer(std::size_t size_n, TYPE* data_n, const ALLOCATOR& allocator) noexcept : alloc(allocator), size(size_n), data(data_n) {
 	}
 
 	template <typename TYPE, typename ALLOCATOR>
-	void buffer<TYPE, ALLOCATOR>::realloc(uint64_t size_n) noexcept {
+	void buffer<TYPE, ALLOCATOR>::realloc(std::size_t size_n) noexcept {
 		free();
 		try {
 			this->data = alloc.allocate(size_n);

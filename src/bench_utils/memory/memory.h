@@ -82,11 +82,11 @@ namespace bench_utils {
 
 	struct unsafe_bump_allocator {
 		const bool use_large_pages = false;
-		uint64_t heap_size = 0u;
+		std::size_t heap_size = 0u;
 		void* heap = nullptr;
 		void* current = nullptr;
 
-		unsafe_bump_allocator(bool use_lp, uint64_t size_bytes) noexcept : use_large_pages(use_lp), heap_size(size_bytes) {
+		unsafe_bump_allocator(bool use_lp, std::size_t size_bytes) noexcept : use_large_pages(use_lp), heap_size(size_bytes) {
 			heap = use_large_pages ? try_malloc_large_page(size_bytes) : try_malloc_aligned_64(size_bytes);
 			current = heap;
 		}

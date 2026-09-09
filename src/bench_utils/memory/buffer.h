@@ -8,19 +8,19 @@ namespace bench_utils {
 		using ElementType = TYPE;
 		using AllocatorType = ALLOCATOR;
 		ALLOCATOR alloc = ALLOCATOR();
-		uint64_t size = 0;
+		std::size_t size = 0;
 		TYPE* data = nullptr;
 
 		buffer() noexcept = default;
 		buffer(const ALLOCATOR& allocator = ALLOCATOR()) noexcept;
-		buffer(uint64_t size_n, const ALLOCATOR& allocator = ALLOCATOR()) noexcept;
-		buffer(uint64_t size_n, TYPE* data_n, const ALLOCATOR& allocator = ALLOCATOR()) noexcept;
+		buffer(std::size_t size_n, const ALLOCATOR& allocator = ALLOCATOR()) noexcept;
+		buffer(std::size_t size_n, TYPE* data_n, const ALLOCATOR& allocator = ALLOCATOR()) noexcept;
 		buffer(std::nullptr_t, const ALLOCATOR& allocator = ALLOCATOR()) noexcept;
 		buffer(const buffer&) noexcept = delete;
 		buffer(buffer&& source) noexcept;
 		~buffer() noexcept = default;
 
-		void realloc(uint64_t size_n) noexcept;
+		void realloc(std::size_t size_n) noexcept;
 		void free() noexcept;
 
 		[[nodiscard]] constexpr TYPE* begin() noexcept;
