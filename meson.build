@@ -20,7 +20,6 @@ add_project_arguments(cpp_compiler.get_supported_arguments([
 	'-Wshorten-64-to-32',
 	'-Wfloat-equal',
 	'-Wcast-align',
-	'-Wuseless-cast',
 	'-Wshadow',
 	'-Wmissing-field-initializers',
 	'-Wmissing-noreturn',

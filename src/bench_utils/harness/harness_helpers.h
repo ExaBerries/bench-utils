@@ -111,7 +111,7 @@ namespace bench_utils {
 			auto start = std::find(values.begin(), values.end(), parsed_range.min);
 			auto end = std::find(values.begin(), values.end(), parsed_range.max);
 
-			auto stride = parsed_range.stride;
+			auto stride = static_cast<std::size_t>(parsed_range.stride);
 			if (start == values.end() || end == values.end() || start > end) {
 				return std::nullopt;
 			}
