@@ -1,4 +1,5 @@
 #pragma once
+#include <bench_utils/math/math.h>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -53,7 +54,11 @@ namespace bench_utils {
 			if (n == 0) {
 				return nullptr;
 			}
-			void* ptr = use_large_pages ? try_malloc_large_page(n * sizeof(T)) : try_malloc_aligned_64(n * sizeof(T));
+			auto bytes = math::checked_mul(n, sizeof(T));
+			if (!bytes) {
+				throw std::bad_alloc();
+			}
+			void* ptr = use_large_pages ? try_malloc_large_page(*bytes) : try_malloc_aligned_64(*bytes);
 			if (!ptr) {
 				throw std::bad_alloc();
 			}
@@ -64,10 +69,14 @@ namespace bench_utils {
 			if (!ptr) {
 				return;
 			}
+			auto bytes = math::checked_mul(n, sizeof(T));
+			if (!bytes) {
+				return;
+			}
 			if (use_large_pages) {
-				free_large_page(ptr, n * sizeof(T));
+				free_large_page(ptr, *bytes);
 			} else {
-				free_aligned_64(ptr, n * sizeof(T));
+				free_aligned_64(ptr, *bytes);
 			}
 		}
 
