@@ -42,4 +42,18 @@ namespace bench_utils {
 			return std::format("{:.2f} {}", size, units[unit]);
 		}
 	}
+
+	[[nodiscard]] std::string format_hms_flex(uint64_t total_seconds) noexcept {
+		const auto hours = total_seconds / 3600ull;
+		const auto minutes = (total_seconds % 3600ull) / 60ull;
+		const auto seconds = total_seconds % 60ull;
+
+		if (hours > 0ull) {
+			return std::format("{}h {}m {}s", hours, minutes, seconds);
+		} else if (minutes > 0ull) {
+			return std::format("{}m {}s", minutes, seconds);
+		} else {
+			return std::format("{}s", seconds);
+		}
+	}
 } // namespace bench_utils

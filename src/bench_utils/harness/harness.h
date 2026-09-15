@@ -20,6 +20,7 @@
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
+#include "../format.h"
 #include <string>
 #include <vector>
 #include <functional>
@@ -30,6 +31,7 @@
 #include <type_traits>
 #include <array>
 #include <concepts>
+#include <format>
 
 namespace bench_utils {
 	struct harness_run {
@@ -95,15 +97,15 @@ namespace bench_utils {
 
 			std::cout << "!!HARNESS!! run values:" << std::endl;
 
-			auto total_time = runs.size() * wait_time_ms / 1000u;
+			auto total_time_s = runs.size() * wait_time_ms / 1000u;
 			auto total_runs = 0u;
 			for (auto& run : runs) {
 				std::cout << run.name << std::endl;
-				total_time += run.est_runtime_s * num_sub_runs;
+				total_time_s += run.est_runtime_s * num_sub_runs;
 				total_runs += num_sub_runs;
 			}
 
-			std::cout << "!!HARNESS!! estimated total time = " << total_time << "s" << std::endl;
+			std::cout << "!!HARNESS!! estimated total time = " << format_hms_flex(total_time_s) << std::endl;
 
 			auto sub_run = 0u;
 			for (auto& run : runs) {
