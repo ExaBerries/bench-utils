@@ -319,5 +319,11 @@ namespace bench_utils {
 
 		return result;
 	}
+
+	[[nodiscard]] bool is_invariant_tsc() noexcept {
+		int32_t r[4];
+		cpuid(0x80000007, 0, r);
+		return (r[3] & (1 << 8)) != 0;
+	}
 } // namespace bench_utils
 #endif

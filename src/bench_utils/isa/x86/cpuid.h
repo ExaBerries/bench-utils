@@ -85,5 +85,6 @@ namespace bench_utils {
 	[[nodiscard]] std::string get_cpu_brand_string() noexcept;
 	[[nodiscard]] x86_extensions get_cpu_supported_isas() noexcept;
 	[[nodiscard]] std::string get_cpu_isa_string() noexcept;
+	[[nodiscard]] bool is_invariant_tsc() noexcept;
 } // namespace bench_utils
 #endif

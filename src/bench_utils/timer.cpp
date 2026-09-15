@@ -11,6 +11,8 @@ namespace bench_utils {
 			LARGE_INTEGER freq;
 			QueryPerformanceFrequency(&freq);
 			this->frequency = freq.QuadPart;
+		#else
+			this->frequency = std::chrono::high_resolution_clock::period::den / std::chrono::high_resolution_clock::period::num;
 		#endif
 	}
 
