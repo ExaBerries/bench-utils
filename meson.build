@@ -95,27 +95,27 @@ bench_utils_dep = declare_dependency(
 	link_with: lib,
 )
 
-if host_machine.system() != 'windows'
-	# had issues with gtest in windows...
-	gtest_dep = dependency('gtest_main')
+gtest_dep = dependency('gtest_main', static: true)
 
-	test_exe = executable(
-		base_name + '-utest',
-		[
-			'test/src/buffer_test.cpp',
-			'test/src/harness_test.cpp',
-			'test/src/harness_parse_test.cpp',
-			'test/src/parse_test.cpp'
-		],
-		include_directories: inc_dir,
-		dependencies: [
-			gtest_dep,
-			lyra_dep
-		],
-		link_with: [
-			lib
-		]
-	)
+test_exe = executable(
+	base_name + '-utest',
+	[
+		'test/src/buffer_test.cpp',
+		'test/src/harness_test.cpp',
+		'test/src/harness_parse_test.cpp',
+		'test/src/mapping.cpp',
+		'test/src/mapping_numa_test.cpp',
+		'test/src/mapping_phte_test.cpp',
+		'test/src/parse_test.cpp'
+	],
+	include_directories: inc_dir,
+	dependencies: [
+		gtest_dep,
+		lyra_dep
+	],
+	link_with: [
+		lib
+	]
+)
 
-	test('gtest', test_exe, protocol: 'gtest')
-endif
+test('gtest', test_exe, protocol: 'gtest', timeout: 300)

@@ -109,15 +109,20 @@ namespace bench_utils {
 			return result;
 		}
 
-		std::vector<std::vector<const logical_processor*>> thread_lists;
-
-		// iterate perf levels from highest performance (0) downward
+		std::vector<groups_t> levels;
+		levels.reserve(topo_tree.perf_level_count);
+		std::size_t max_threads = 0u;
 		for (uint32_t lvl = 0; lvl < topo_tree.perf_level_count; lvl++) {
-			auto [groups, mt] = build_groups_int_numa_int_llc(topo_tree, lvl);
-			initalize_thread_lists(thread_lists, mt);
-			interleave(thread_lists, groups);
-			add_threads_to_result(result, thread_lists);
+			levels.push_back(build_groups_int_numa_int_llc(topo_tree, lvl));
+			max_threads = std::max(max_threads, levels.back().max_threads);
 		}
+
+		std::vector<std::vector<const logical_processor*>> thread_lists;
+		initalize_thread_lists(thread_lists, max_threads);
+		for (const auto& level : levels) {
+			interleave(thread_lists, level.groups);
+		}
+		add_threads_to_result(result, thread_lists);
 
 		return result;
 	}
