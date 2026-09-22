@@ -13,7 +13,7 @@ namespace bench_utils {
 
 	struct core {
 		uint32_t core_id = 0u;
-		bool high_perf = false;
+		uint32_t perf_level = 0u; // 0 = highest performance tier
 		std::vector<logical_processor> threads{};
 	};
 
@@ -29,6 +29,7 @@ namespace bench_utils {
 
 	struct topology_tree {
 		std::vector<numa_node> numa_nodes{};
+		uint32_t perf_level_count = 0u; // number of distinct performance tiers discovered
 	};
 
 	[[nodiscard]] topology_tree build_topo_tree() noexcept;

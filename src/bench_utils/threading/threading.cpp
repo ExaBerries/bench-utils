@@ -39,7 +39,7 @@ namespace bench_utils {
 		std::size_t max_threads = 0u;
 	};
 
-	static groups_t build_groups_int_numa_int_llc(const topology_tree& topo_tree, bool high_perf) noexcept {
+	static groups_t build_groups_int_numa_int_llc(const topology_tree& topo_tree, uint32_t perf_level) noexcept {
 		std::vector<std::vector<const core*>> groups;
 		std::size_t max_threads = 0u;
 		std::size_t max_llc_count = 0;
@@ -52,7 +52,7 @@ namespace bench_utils {
 				if (llc_index < node.llc_groups.size()) {
 					std::vector<const core*> cores_in_group;
 					for (const auto& c : node.llc_groups[llc_index].cores) {
-						if (c.high_perf == high_perf && !c.threads.empty()) {
+						if (c.perf_level == perf_level && !c.threads.empty()) {
 							cores_in_group.push_back(&c);
 							max_threads = std::max(max_threads, c.threads.size());
 						}
@@ -111,16 +111,13 @@ namespace bench_utils {
 
 		std::vector<std::vector<const logical_processor*>> thread_lists;
 
-		// p cores first then e cores
-		auto [p_groups, p_mt] = build_groups_int_numa_int_llc(topo_tree, true);
-		auto [e_groups, e_mt] = build_groups_int_numa_int_llc(topo_tree, false);
-
-		initalize_thread_lists(thread_lists, std::max(p_mt, e_mt));
-
-		interleave(thread_lists, p_groups);
-		interleave(thread_lists, e_groups);
-
-		add_threads_to_result(result, thread_lists);
+		// iterate perf levels from highest performance (0) downward
+		for (uint32_t lvl = 0; lvl < topo_tree.perf_level_count; lvl++) {
+			auto [groups, mt] = build_groups_int_numa_int_llc(topo_tree, lvl);
+			initalize_thread_lists(thread_lists, mt);
+			interleave(thread_lists, groups);
+			add_threads_to_result(result, thread_lists);
+		}
 
 		return result;
 	}
@@ -133,8 +130,9 @@ namespace bench_utils {
 
 		std::vector<std::vector<const logical_processor*>> thread_lists;
 
-		for (auto p_or_e : {true, false}) {
-			auto [groups, mt] = build_groups_int_numa_int_llc(topo_tree, p_or_e);
+		// each perf tier is fully separated (no interleaving across tiers)
+		for (uint32_t lvl = 0; lvl < topo_tree.perf_level_count; lvl++) {
+			auto [groups, mt] = build_groups_int_numa_int_llc(topo_tree, lvl);
 			initalize_thread_lists(thread_lists, mt);
 			interleave(thread_lists, groups);
 			add_threads_to_result(result, thread_lists);

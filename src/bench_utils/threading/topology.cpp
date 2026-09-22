@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <charconv>
+#include <algorithm>
 
 #if defined(_WIN32)
 	#define WIN32_LEAN_AND_MEAN
@@ -69,7 +70,7 @@ namespace bench_utils {
 		// cores
 		std::map<uint32_t, std::map<uint32_t, std::map<uint32_t, core>>> topo;
 
-		bool non_homo = false;
+		uint32_t max_perf_level = 0;
 		uint32_t core_counter = 0;
 
 		ptr = buffer.data();
@@ -80,8 +81,8 @@ namespace bench_utils {
 			if (curr->Relationship == RelationProcessorCore) {
 				core c;
 				c.core_id = core_counter++;
-				c.high_perf = curr->Processor.EfficiencyClass;
-				non_homo |= c.high_perf;
+				c.perf_level = curr->Processor.EfficiencyClass;
+				max_perf_level = std::max(max_perf_level, c.perf_level);
 
 				uint32_t node_id = 0;
 
@@ -108,15 +109,18 @@ namespace bench_utils {
 			ptr += curr->Size;
 		}
 
-		if (!non_homo) {
+		// homogeneous: all cores are tier 0
+		if (max_perf_level == 0) {
 			for (auto& [_, llcs] : topo) {
 				for (auto& [__, cores] : llcs) {
 					for (auto& [___, c] : cores) {
-						c.high_perf = true;
+						c.perf_level = 0;
 					}
 				}
 			}
 		}
+
+		tree.perf_level_count = max_perf_level + 1;
 
 		for (auto& [nid, llcs] : topo) {
 			numa_node node{nid};
@@ -137,7 +141,17 @@ namespace bench_utils {
 	[[nodiscard]] topology_tree build_topo_tree() noexcept {
 		topology_tree tree;
 
-		std::map<uint32_t, std::map<uint32_t, std::map<uint32_t, core>>> topo;
+		auto read_u32 = [](const std::filesystem::path& path, uint32_t def = 0u) -> uint32_t {
+			std::ifstream f(path);
+			uint32_t v = def;
+			if (f) {
+				f >> v;
+			}
+			return v;
+		};
+
+		// first pass: collect all cpu_capacity values to discover distinct tiers
+		std::vector<std::pair<uint32_t, uint32_t>> cpu_entries; // (cpu_id, capacity)
 
 		for (const auto& entry : std::filesystem::directory_iterator("/sys/devices/system/cpu")) {
 			auto name = entry.path().filename().string();
@@ -152,48 +166,63 @@ namespace bench_utils {
 				auto [ptr, ec] = std::from_chars(cpu_str.data(), cpu_str.data() + cpu_str.size(), cpu);
 
 				if (ec != std::errc{}) {
-					continue; // invalid entry
+					continue;
 				}
 			}
 
-			auto read_u32 = [&](const std::string& leaf, uint32_t def = 0u) {
-				std::ifstream f(entry.path() / leaf);
-				uint32_t v = def;
-				if (f) {
-					f >> v;
-				}
-				return v;
-			};
+			uint32_t capacity = read_u32(entry.path() / "cpu_capacity", 1024);
+			cpu_entries.emplace_back(cpu, capacity);
+		}
+
+		// build sorted unique list of capacities (descending) to map to perf levels
+		std::vector<uint32_t> capacities;
+		capacities.reserve(cpu_entries.size());
+		for (const auto& [_, cap] : cpu_entries) {
+			capacities.push_back(cap);
+		}
+		std::sort(capacities.begin(), capacities.end(), std::greater<>());
+		capacities.erase(std::unique(capacities.begin(), capacities.end()), capacities.end());
+
+		// map capacity -> perf_level (highest capacity = tier 0)
+		std::map<uint32_t, uint32_t> cap_to_tier;
+		for (uint32_t i = 0; i < static_cast<uint32_t>(capacities.size()); i++) {
+			cap_to_tier[capacities[i]] = i;
+		}
+		tree.perf_level_count = static_cast<uint32_t>(capacities.size());
+
+		// second pass: build topology with assigned perf levels
+		std::map<uint32_t, std::map<uint32_t, std::map<uint32_t, core>>> topo;
+
+		for (const auto& [cpu, capacity] : cpu_entries) {
+			auto entry_path = std::filesystem::path("/sys/devices/system/cpu") / ("cpu" + std::to_string(cpu));
 
 			uint32_t node_id = 0;
-			for (const auto& n : std::filesystem::directory_iterator(entry.path())) {
+			for (const auto& n : std::filesystem::directory_iterator(entry_path)) {
 				auto fname = n.path().filename().string();
 				if (fname.rfind("node", 0) == 0) {
 					auto nid_str = fname.substr(4);
 					auto [ptr, ec] = std::from_chars(nid_str.data(), nid_str.data() + nid_str.size(), node_id);
 
 					if (ec != std::errc{}) {
-						continue; // invalid entry
+						continue;
 					}
 					break;
 				}
 			}
 
-			uint32_t core_id = read_u32("topology/core_id");
+			uint32_t core_id = read_u32(entry_path / "topology/core_id");
 
 			uint32_t llc_id = 0;
 			{
-				std::ifstream f(entry.path() / "cache/index3/id");
+				std::ifstream f(entry_path / "cache/index3/id");
 				if (f) {
 					f >> llc_id;
 				}
 			}
 
-			uint32_t capacity = read_u32("cpu_capacity", 1024);
-
 			auto& c = topo[node_id][llc_id][core_id];
 			c.core_id = core_id;
-			c.high_perf = (capacity > 700);
+			c.perf_level = cap_to_tier[capacity];
 
 			logical_processor lp{};
 			lp.core_id = core_id;
@@ -226,21 +255,26 @@ namespace bench_utils {
 		topology_tree tree;
 		numa_node node{0};
 
-		uint32_t p = 0, e = 0;
-		size_t sz = sizeof(uint32_t);
-
-		sysctlbyname("hw.perflevel0.physicalcpu", &p, &sz, NULL, 0);
-		sysctlbyname("hw.perflevel1.physicalcpu", &e, &sz, NULL, 0);
-
+		// probe for N perf levels (hw.perflevel0, hw.perflevel1, ...)
+		// up to a reasonable maximum; stop when a level reports 0 cores
+		constexpr uint32_t max_levels = 8;
 		uint32_t gid = 0;
 
-		auto add_cluster = [&](uint32_t count, bool high_perf, uint32_t llc_id) {
-			llc_group llc{llc_id};
+		for (uint32_t lvl = 0; lvl < max_levels; lvl++) {
+			std::string count_key = "hw.perflevel" + std::to_string(lvl) + ".physicalcpu";
+			uint32_t count = 0;
+			size_t sz = sizeof(uint32_t);
+
+			if (sysctlbyname(count_key.c_str(), &count, &sz, NULL, 0) != 0 || count == 0) {
+				break;
+			}
+
+			llc_group llc{lvl};
 
 			for (uint32_t i = 0; i < count; i++) {
 				core c;
 				c.core_id = gid;
-				c.high_perf = high_perf;
+				c.perf_level = lvl;
 
 				logical_processor lp{};
 				lp.core_id = gid;
@@ -254,10 +288,9 @@ namespace bench_utils {
 			}
 
 			node.llc_groups.push_back(std::move(llc));
-		};
+		}
 
-		add_cluster(p, true, 0); // big cluster
-		add_cluster(e, false, 1); // small cluster
+		tree.perf_level_count = static_cast<uint32_t>(node.llc_groups.size());
 
 		tree.numa_nodes.push_back(std::move(node));
 		return tree;
@@ -269,6 +302,8 @@ namespace bench_utils {
 #endif
 
 	void print_topo_debug(const topology_tree& tree) noexcept {
+		std::cout << "perf_level_count=" << tree.perf_level_count << "\n";
+
 		for (const auto& n : tree.numa_nodes) {
 			std::cout << "numa node id=" << n.node_id << "\n";
 
@@ -277,7 +312,7 @@ namespace bench_utils {
 
 				for (const auto& c : llc.cores) {
 					std::cout << "|  |--core id=" << c.core_id
-							  << " " << (c.high_perf ? "p" : "e") << "\n";
+							  << " perf_level=" << c.perf_level << "\n";
 
 					for (const auto& lp : c.threads) {
 						std::cout << "|  |  |--logical idx=" << lp.thread_index
