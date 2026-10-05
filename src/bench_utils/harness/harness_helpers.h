@@ -5,6 +5,7 @@
 #include <vector>
 #include <array>
 #include <concepts>
+#include <iterator>
 
 namespace bench_utils {
 	namespace sweep_helpers {
@@ -46,14 +47,14 @@ namespace bench_utils {
 			return output;
 		}
 
-		template <std::integral T>
+		template <std::unsigned_integral T>
 		struct parsed_range_int {
 			T min = 0ull;
 			T max = 0ull;
 			T stride = 0ull;
 		};
 
-		template <std::integral T>
+		template <std::unsigned_integral T>
 		inline std::optional<parsed_range_int<T>> parse_range(std::string_view str, T default_min, T default_max, T default_stride) noexcept {
 			if (str.empty() || str == "auto") {
 				return parsed_range_int<T>{default_min, default_max, default_stride};
@@ -96,10 +97,14 @@ namespace bench_utils {
 				return std::nullopt;
 			}
 
+			if (stride == 0) {
+				return std::nullopt;
+			}
+
 			return parsed_range_int<T>{min, max, stride};
 		}
 
-		template <std::integral T, std::size_t AS>
+		template <std::unsigned_integral T, std::size_t AS>
 		inline std::optional<std::vector<T>> filter_for_range_str(std::string_view str, const std::array<T, AS>& values, T default_min, T default_max, T default_stride) noexcept {
 			auto parsed_range_opt = parse_range(str, default_min, default_max, default_stride);
 			if (!parsed_range_opt) {
@@ -111,22 +116,19 @@ namespace bench_utils {
 			auto start = std::find(values.begin(), values.end(), parsed_range.min);
 			auto end = std::find(values.begin(), values.end(), parsed_range.max);
 
-			auto stride = static_cast<std::size_t>(parsed_range.stride);
+			auto stride = parsed_range.stride;
 			if (start == values.end() || end == values.end() || start > end) {
 				return std::nullopt;
 			}
 
-			if (stride <= 0) {
+			if (stride == 0) {
 				return std::nullopt;
 			}
 
 			std::vector<T> result;
-
-			for (auto it = start; it <= end; it += stride) {
-				result.push_back(*it);
-
-				if (it + stride > end) {
-					break;
+			for (auto it = start; it <= end; ++it) {
+				if (((*it - parsed_range.min) % stride) == 0) {
+					result.push_back(*it);
 				}
 			}
 
@@ -134,7 +136,7 @@ namespace bench_utils {
 		}
 
 		template <std::size_t AS>
-		inline std::optional<std::vector<std::string>> filter_for_range_str(std::string_view str, const std::array<std::string_view, AS>& values, std::string_view default_min, std::string_view default_max, uint32_t default_stride) noexcept {
+		inline std::optional<std::vector<std::string>> filter_for_range_str(std::string_view str, const std::array<std::string_view, AS>& values, std::string_view default_min, std::string_view default_max) noexcept {
 			auto tokens = parse_min_max_stride_str(str);
 
 			auto start = std::find(values.begin(), values.end(), tokens.min.empty() ? default_min : tokens.min);
@@ -144,45 +146,48 @@ namespace bench_utils {
 				return std::nullopt;
 			}
 
-			std::vector<std::string> result;
-			auto stride = default_stride;
 			if (!tokens.stride.empty()) {
-				auto stride_opt = parse_int<uint32_t>(tokens.stride);
-				if (!stride_opt) {
-					return std::nullopt;
-				}
-				stride = stride_opt.value();
-			}
-
-			if (stride == 0) {
 				return std::nullopt;
 			}
 
-			for (auto it = start; it <= end; it += stride) {
-				result.push_back(std::string(*it));
+			std::vector<std::string> result;
+			result.reserve(static_cast<std::size_t>(end - start) + 1);
 
-				if (it + stride > end) {
-					break;
-				}
+			for (auto it = start; it <= end; ++it) {
+				result.push_back(std::string(*it));
 			}
 
 			return result;
 		}
 
-		template <std::integral T>
+		template <std::unsigned_integral T>
 		inline std::vector<T> expand_range(const parsed_range_int<T>& range) noexcept {
 			std::vector<T> out;
-			for (auto val = range.min; val <= range.max; val += range.stride) {
+			for (auto val = range.min; val <= range.max;) {
 				out.push_back(val);
+
+				if (range.stride > range.max - val) {
+					break;
+				}
+				val += range.stride;
 			}
 			return out;
 		}
 
-		template <typename CONTEXT, std::integral T, typename CREATE_RUN>
+		template <typename CONTEXT, std::unsigned_integral T, typename CREATE_RUN>
 		std::optional<std::vector<harness_run>> make_numeric_sweep(std::string_view opt_str, const CONTEXT& context, CREATE_RUN create_run, T default_begin, T default_end) noexcept {
 			std::vector<harness_run> output;
 
 			if (!opt_str.empty() && opt_str != "auto") {
+				if (auto range = parse_range(opt_str, default_begin, default_end, static_cast<T>(1))) {
+					for (auto v : expand_range(range.value())) {
+						output.emplace_back(create_run(context, v));
+					}
+					if (!output.empty()) {
+						return output;
+					}
+				}
+
 				if (auto parsed = parse_list(opt_str)) {
 					for (auto sv : parsed.value()) {
 						auto v = parse_int<T>(sv);
@@ -190,15 +195,6 @@ namespace bench_utils {
 							return std::nullopt;
 						}
 						output.emplace_back(create_run(context, v.value()));
-					}
-					if (!output.empty()) {
-						return output;
-					}
-				}
-
-				if (auto range = parse_range(opt_str, default_begin, default_end, static_cast<T>(1))) {
-					for (auto v : expand_range(range.value())) {
-						output.emplace_back(create_run(context, v));
 					}
 					if (!output.empty()) {
 						return output;
@@ -218,7 +214,7 @@ namespace bench_utils {
 			std::vector<harness_run> output;
 
 			if (!opt_str.empty() && opt_str != "auto") {
-				if (auto filtered = sweep_helpers::filter_for_range_str(opt_str, valid_values, default_min, default_max, 1u)) {
+				if (auto filtered = sweep_helpers::filter_for_range_str(opt_str, valid_values, default_min, default_max)) {
 					for (const auto& v : filtered.value()) {
 						output.emplace_back(create_run(context, v));
 					}
@@ -249,7 +245,7 @@ namespace bench_utils {
 			return output;
 		}
 
-		template <typename CONTEXT, std::integral T, size_t AS, typename CREATE_RUN>
+		template <typename CONTEXT, std::unsigned_integral T, size_t AS, typename CREATE_RUN>
 		std::optional<std::vector<harness_run>> make_filtered_sweep(std::string_view opt_str, const CONTEXT& context, const std::array<T, AS>& valid_values, CREATE_RUN create_run,  T default_min, T default_max) noexcept {
 			std::vector<harness_run> output;
 

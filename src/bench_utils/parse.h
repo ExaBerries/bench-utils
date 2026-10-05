@@ -3,17 +3,20 @@
 #include <charconv>
 #include <string_view>
 #include <string>
+#include <vector>
+#include <optional>
 #include <type_traits>
+#include <concepts>
 
 namespace bench_utils {
-	template <std::integral T>
+	template <std::unsigned_integral T>
 	inline std::optional<T> parse_int(std::string_view sv) noexcept {
 		if (sv.empty()) {
 			return std::nullopt;
 		}
 		T value = 0;
 		auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), value);
-		if (ec != std::errc()) {
+		if (ec != std::errc() || ptr != sv.data() + sv.size()) {
 			return std::nullopt;
 		}
 		return value;
