@@ -10,11 +10,13 @@
 namespace bench_utils {
 	[[nodiscard]] static timer_source detect_timer_source([[maybe_unused]] int64_t frequency) noexcept {
 		#if defined(_WIN32) && (defined(BENCH_UTILS_ISA_X86_64) || defined(BENCH_UTILS_ISA_X86))
-		constexpr int64_t tsc_threshold = 1'000'000'000ll;   // 1 GHz
-		constexpr int64_t hpet_threshold = 10'000'000ll;     // ~10 MHz
-		constexpr int64_t acpi_khz = 3579ll;                 // 3.579545 MHz PM timer
-		constexpr int64_t pit_frequency = 1'193'182ll;       // 1.193182 MHz
-		constexpr int64_t rtc_frequency = 32'000'000ll;      // 32 kHz derived
+		constexpr int64_t hpet_min_threshold = 10'000'000ll; // ~10 MHz
+		constexpr int64_t typical_hpet_min = 14'3100'000ull;
+		constexpr int64_t typical_hpet_max = 14'3300'000ull;
+		constexpr int64_t hpet_max_threshold = 100'000'000ll; // ~100 MHz
+		constexpr int64_t acpi_khz = 3579ll; // 3.579545 MHz PM timer
+		constexpr int64_t pit_frequency = 1'193'182ll; // 1.193182 MHz
+		constexpr int64_t rtc_frequency = 32'000'000ll; // 32 kHz derived
 
 		if (frequency == pit_frequency) {
 			return timer_source::PIT;
@@ -22,16 +24,37 @@ namespace bench_utils {
 		if (frequency == rtc_frequency) {
 			return timer_source::RTC;
 		}
-		if (frequency > tsc_threshold) {
-			return is_invariant_tsc() ? timer_source::INVARIANT_TSC : timer_source::TSC;
-		}
 		if (frequency / 1000ll == acpi_khz) {
 			return timer_source::ACPI_PM;
 		}
-		if (frequency > hpet_threshold) {
+
+		const auto tsc_info = get_tsc_clock_info();
+		const auto inv_or_not_tsc = tsc_info.is_invariant_tsc ? timer_source::INVARIANT_TSC : timer_source::TSC;
+
+		if (frequency < typical_hpet_max && frequency > typical_hpet_min) { // obvious hpet
 			return timer_source::HPET;
 		}
+		if (frequency >= hpet_max_threshold) { // way too high to be hpet -> TSC
+			return timer_source::TSC;
+		}
+
+		if (frequency == hpet_min_threshold) { // 10 MHz should be windows manually scaling TSC
+			return inv_or_not_tsc;
+		}
+
+		if (frequency > hpet_min_threshold) { // windows is not manually scaling to 10 MHz
+			if (tsc_info.tsc_frequency_hz != 0ull) { // try to rule out TSC if CPUID reports it
+				if (tsc_info.tsc_frequency_hz == static_cast<uint64_t>(frequency)) {
+					return inv_or_not_tsc;
+				} else {
+					return timer_source::HPET;
+				}
+			}
+		}
 		#endif
+
+		// future idea: analyze time it takes for timer calls -> a very quick timer call is probably TSC, long -> HPET
+
 		return timer_source::UNKNOWN;
 	}
 
@@ -53,7 +76,6 @@ namespace bench_utils {
 			LARGE_INTEGER freq;
 			QueryPerformanceFrequency(&freq);
 			this->frequency = freq.QuadPart;
-			this->source = classify_frequency(this->frequency);
 		#else
 			this->frequency = std::chrono::high_resolution_clock::period::den / std::chrono::high_resolution_clock::period::num;
 		#endif

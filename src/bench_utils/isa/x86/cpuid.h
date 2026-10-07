@@ -77,14 +77,21 @@ namespace bench_utils {
 		bool avx512_bf16 = false;
 		bool avx512_fp16 = false;
 		bool avx10 = false;
-		uint32_t avx10_version = 0;
+		uint32_t avx10_version = 0u;
 		avx10_vector_length_t avx10_vector_length = avx10_vector_length_t::AVX_10_LENGTH_UNKNOWN;
 		bool apx = false;
+	};
+
+	struct tsc_clock_info {
+		bool is_invariant_tsc = false;
+
+		uint64_t tsc_frequency_hz = 0ull;
+		uint64_t crystal_clock_hz = 0ull;
 	};
 
 	[[nodiscard]] std::string get_cpu_brand_string() noexcept;
 	[[nodiscard]] x86_extensions get_cpu_supported_isas() noexcept;
 	[[nodiscard]] std::string get_cpu_isa_string() noexcept;
-	[[nodiscard]] bool is_invariant_tsc() noexcept;
+	[[nodiscard]] tsc_clock_info get_tsc_clock_info() noexcept;
 } // namespace bench_utils
 #endif

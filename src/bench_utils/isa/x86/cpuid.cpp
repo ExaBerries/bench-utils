@@ -320,10 +320,48 @@ namespace bench_utils {
 		return result;
 	}
 
-	[[nodiscard]] bool is_invariant_tsc() noexcept {
+	[[nodiscard]] tsc_clock_info get_tsc_clock_info() noexcept {
+		tsc_clock_info result{};
 		int32_t r[4];
+
 		cpuid(0x80000007, 0, r);
-		return (r[3] & (1 << 8)) != 0;
+		result.is_invariant_tsc = (r[3] & (1 << 8)) != 0;
+
+		cpuid(0, 0, r);
+		const auto max_basic = r[0];
+
+		uint64_t tsc_ratio_denominator = 0u;
+		uint64_t tsc_ratio_numerator = 0u;
+
+		uint64_t base_frequency_mhz = 0u;
+		// not currently used, left here for ease if needed in the futrue
+		[[maybe_unused]] uint64_t max_frequency_mhz = 0u;
+		[[maybe_unused]] uint64_t bus_frequency_mhz = 0u;
+
+		if (max_basic >= 0x15) {
+			cpuid(0x15, 0, r);
+			tsc_ratio_denominator = static_cast<uint64_t>(r[0]);
+			tsc_ratio_numerator = static_cast<uint64_t>(r[1]);
+			result.crystal_clock_hz = static_cast<uint64_t>(r[2]);
+		}
+
+		if (max_basic >= 0x16) {
+			cpuid(0x16, 0, r);
+			base_frequency_mhz = static_cast<uint64_t>(r[0] & 0xFFFF);
+			max_frequency_mhz = static_cast<uint64_t>(r[1] & 0xFFFF);
+			bus_frequency_mhz = static_cast<uint64_t>(r[2] & 0xFFFF);
+		}
+
+		if (result.crystal_clock_hz != 0u && tsc_ratio_numerator != 0u && tsc_ratio_denominator != 0u) {
+			auto hz = result.crystal_clock_hz * tsc_ratio_numerator / tsc_ratio_denominator;
+			if (hz >= 100'000'000ull) {
+				result.tsc_frequency_hz = hz;
+			}
+		} else {
+			result.tsc_frequency_hz = base_frequency_mhz * 1'000ull;
+		}
+
+		return result;
 	}
 } // namespace bench_utils
 #endif
