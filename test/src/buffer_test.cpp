@@ -19,7 +19,7 @@ TEST(Buffer, NonLP) {
 	buf.free();
 }
 
-TEST(Buffer, LP) {
+TEST(Buffer, LP) { // fails if it can't allocate a large page, may not be an error depending on user privileges
 	using namespace bench_utils;
 
 	lp_flex_allocator_t<uint32_t> alloc(true);
