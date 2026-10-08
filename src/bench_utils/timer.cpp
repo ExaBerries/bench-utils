@@ -155,7 +155,17 @@ namespace bench_utils {
 		#elif defined(__linux__)
 			result.report_frequency = 1'000'000'000ll;
 			result.source = detect_linux_underlying_clock();
-			result.underlying_frequency = get_linux_clk_frequency_for(CLOCK_MONOTONIC_RAW);
+			result.underlying_frequency = [&]() noexcept -> int64_t {
+				#if defined(BENCH_UTILS_ISA_X86_64) || defined(BENCH_UTILS_ISA_X86)
+				if (result.source == timer_source::INVARIANT_TSC || result.source == timer_source::TSC) {
+					auto tsc_freq_hz = get_tsc_clock_info().tsc_frequency_hz;
+					if (tsc_freq_hz != 0ull) {
+						return static_cast<int64_t>(tsc_freq_hz);
+					}
+				}
+				#endif
+				return get_linux_clk_frequency_for(CLOCK_MONOTONIC_RAW);
+			}();
 		#else
 			result.report_frequency = std::chrono::high_resolution_clock::period::den / std::chrono::high_resolution_clock::period::num;
 			result.underlying_frequency = 0ll;;
