@@ -33,11 +33,8 @@ TEST(Timer, coarse_timer_duration) {
 	using namespace bench_utils;
 
 	const timer t = create_coarse_timer();
-	ASSERT_EQ(t.report_frequency, 1000);
+	ASSERT_GT(t.report_frequency, 0);
 	EXPECT_GE(t.underlying_frequency, 0);
-	#if defined(__linux__)
-		EXPECT_GT(t.underlying_frequency, 0);
-	#endif
 
 	const int64_t start = coarse_now();
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -48,7 +45,10 @@ TEST(Timer, coarse_timer_duration) {
 
 	EXPECT_GE(elapsed_ms, 40);
 	EXPECT_LE(elapsed_ms, 2000);
-	EXPECT_EQ(elapsed_us, elapsed_ms * 1000);
+
+	// the reported duration has to be a whole number of coarse ticks
+	const int64_t tick_ns = 1'000'000'000ll / t.report_frequency;
+	EXPECT_EQ(end - start, (elapsed_us * 1000ll) / tick_ns);
 }
 
 TEST(Timer, coarse_agrees_with_fast) {

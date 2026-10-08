@@ -5,7 +5,6 @@
 	#include <windows.h>
 #elif defined(__linux__)
 	#include <time.h>
-	#include <unistd.h>
 #endif
 
 #include <bench_utils/isa/x86/cpuid.h>
@@ -108,33 +107,43 @@ namespace bench_utils {
 	template int64_t duration<std::chrono::seconds>(const timer& t, int64_t start, int64_t end) noexcept;
 
 	#if defined(__linux__)
-	[[nodiscard]] static int64_t detect_underlying_frequency() noexcept {
-		std::ifstream clocksource_file("/sys/devices/system/clocksource/clocksource0/current_clocksource");
-		if (!clocksource_file) {
+		[[nodiscard]] static int64_t detect_linux_underlying_frequency() noexcept {
+			std::ifstream clocksource_file("/sys/devices/system/clocksource/clocksource0/current_clocksource");
+			if (!clocksource_file) {
+				return 0ll;
+			}
+
+			std::string clocksource;
+			std::getline(clocksource_file, clocksource);
+
+			if (clocksource == "tsc") {
+				#if defined(BENCH_UTILS_ISA_X86_64) || defined(BENCH_UTILS_ISA_X86)
+					return static_cast<int64_t>(get_tsc_clock_info().tsc_frequency_hz);
+				#else
+					return 0ll;
+				#endif
+			}
+			if (clocksource == "hpet") {
+				return 14'318'180ll;
+			}
+			if (clocksource == "acpi_pm") {
+				return 3'579'545ll;
+			}
+			if (clocksource == "pit") {
+				return 1'193'182ll;
+			}
 			return 0ll;
 		}
 
-		std::string clocksource;
-		std::getline(clocksource_file, clocksource);
-
-		if (clocksource == "tsc") {
-			#if defined(BENCH_UTILS_ISA_X86_64) || defined(BENCH_UTILS_ISA_X86)
-			return static_cast<int64_t>(get_tsc_clock_info().tsc_frequency_hz);
-			#else
-			return 0ll;
-			#endif
+		template <typename T>
+		[[nodiscard]] static int64_t get_linux_clk_frequency_for(T clock) noexcept {
+			timespec res{};
+			if (clock_getres(clock, &res) != 0) {
+				return 1'000ll; // fall back to the usual 1ms jiffy
+			}
+			const int64_t nanoseconds = static_cast<int64_t>(res.tv_sec) * 1'000'000'000ll + static_cast<int64_t>(res.tv_nsec);
+			return nanoseconds > 0ll ? 1'000'000'000ll / nanoseconds : 1'000ll;
 		}
-		if (clocksource == "hpet") {
-			return 14'318'180ll;
-		}
-		if (clocksource == "acpi_pm") {
-			return 3'579'545ll;
-		}
-		if (clocksource == "pit") {
-			return 1'193'182ll;
-		}
-		return 0ll;
-	}
 	#endif
 
 	[[nodiscard]] timer create_fast_timer() noexcept {
@@ -146,7 +155,7 @@ namespace bench_utils {
 			result.underlying_frequency = result.report_frequency;
 		#elif defined(__linux__)
 			result.report_frequency = 1'000'000'000ll;
-			result.underlying_frequency = detect_underlying_frequency();
+			result.underlying_frequency = detect_linux_underlying_frequency();
 		#else
 			result.report_frequency = std::chrono::high_resolution_clock::period::den / std::chrono::high_resolution_clock::period::num;
 			result.underlying_frequency = 0ll;
@@ -171,8 +180,8 @@ namespace bench_utils {
 
 	[[nodiscard]] timer create_coarse_timer() noexcept {
 		timer result{};
-		result.report_frequency = 1000ll;
 		#if defined(_WIN32)
+			result.report_frequency = 1000ll; // GetTickCount64 ticks every millisecond
 			DWORD adjustment = 0ul;
 			DWORD increment = 0ul;
 			BOOL enabled = FALSE;
@@ -180,10 +189,10 @@ namespace bench_utils {
 				result.underlying_frequency = 10'000'000ll / static_cast<int64_t>(increment);
 			}
 		#elif defined(__linux__)
-			const long ticks_per_second = sysconf(_SC_CLK_TCK);
-			if (ticks_per_second > 0l) {
-				result.underlying_frequency = static_cast<int64_t>(ticks_per_second);
-			}
+			result.report_frequency = 1'000ll;
+			result.underlying_frequency = get_linux_clk_frequency_for(CLOCK_MONOTONIC_COARSE);
+		#else
+			result.report_frequency = 1000ll;
 		#endif
 		return result;
 	}
@@ -194,7 +203,7 @@ namespace bench_utils {
 		#elif defined(__linux__)
 			timespec ts;
 			clock_gettime(CLOCK_MONOTONIC_COARSE, &ts);
-			return static_cast<int64_t>(ts.tv_sec) * 1000ll + static_cast<int64_t>(ts.tv_nsec) / 1'000'000ll;
+			return static_cast<int64_t>(ts.tv_sec) * 1'000ll + static_cast<int64_t>(ts.tv_nsec) / 1'000'000ll;
 		#else
 			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 		#endif
