@@ -14,7 +14,7 @@
 #include <string>
 
 namespace bench_utils {
-	[[nodiscard]] static timer_source detect_timer_source([[maybe_unused]] int64_t frequency) noexcept {
+	[[nodiscard, maybe_unused]] static timer_source detect_timer_source_from_freq([[maybe_unused]] int64_t frequency) noexcept {
 		#if defined(_WIN32) && (defined(BENCH_UTILS_ISA_X86_64) || defined(BENCH_UTILS_ISA_X86))
 		constexpr int64_t hpet_min_threshold = 10'000'000ll; // ~10 MHz
 		constexpr int64_t typical_hpet_min = 14'3100'000ull;
@@ -107,32 +107,30 @@ namespace bench_utils {
 	template int64_t duration<std::chrono::seconds>(const timer& t, int64_t start, int64_t end) noexcept;
 
 	#if defined(__linux__)
-		[[nodiscard]] static int64_t detect_linux_underlying_frequency() noexcept {
+		[[nodiscard]] static timer_source detect_linux_underlying_clock() noexcept {
 			std::ifstream clocksource_file("/sys/devices/system/clocksource/clocksource0/current_clocksource");
 			if (!clocksource_file) {
-				return 0ll;
+				return timer_source::UNKNOWN;
 			}
 
 			std::string clocksource;
 			std::getline(clocksource_file, clocksource);
 
-			if (clocksource == "tsc") {
-				#if defined(BENCH_UTILS_ISA_X86_64) || defined(BENCH_UTILS_ISA_X86)
-					return static_cast<int64_t>(get_tsc_clock_info().tsc_frequency_hz);
-				#else
-					return 0ll;
-				#endif
-			}
-			if (clocksource == "hpet") {
-				return 14'318'180ll;
-			}
-			if (clocksource == "acpi_pm") {
-				return 3'579'545ll;
-			}
-			if (clocksource == "pit") {
-				return 1'193'182ll;
-			}
-			return 0ll;
+			#if defined(BENCH_UTILS_ISA_X86_64) || defined(BENCH_UTILS_ISA_X86)
+				if (clocksource == "tsc") {
+					return get_tsc_clock_info().is_invariant_tsc ? timer_source::INVARIANT_TSC : timer_source::TSC;
+				}
+				if (clocksource == "hpet") {
+					return timer_source::HPET;
+				}
+				if (clocksource == "acpi_pm") {
+					return timer_source::ACPI_PM;
+				}
+				if (clocksource == "pit") {
+					return timer_source::PIT;
+				}
+			#endif
+			return timer_source::UNKNOWN;
 		}
 
 		template <typename T>
@@ -153,14 +151,16 @@ namespace bench_utils {
 			QueryPerformanceFrequency(&freq);
 			result.report_frequency = freq.QuadPart;
 			result.underlying_frequency = result.report_frequency;
+			result.source = detect_timer_source_from_freq(result.report_frequency);
 		#elif defined(__linux__)
 			result.report_frequency = 1'000'000'000ll;
-			result.underlying_frequency = detect_linux_underlying_frequency();
+			result.source = detect_linux_underlying_clock();
+			result.underlying_frequency = get_linux_clk_frequency_for(CLOCK_MONOTONIC_RAW);
 		#else
 			result.report_frequency = std::chrono::high_resolution_clock::period::den / std::chrono::high_resolution_clock::period::num;
-			result.underlying_frequency = 0ll;
+			result.underlying_frequency = 0ll;;
+			result.source = timer_source::UNKNOWN;
 		#endif
-		result.source = detect_timer_source(result.report_frequency);
 		return result;
 	}
 
