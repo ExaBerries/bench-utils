@@ -101,13 +101,28 @@ test_exe = executable(
 	base_name + '-utest',
 	[
 		'test/src/buffer_test.cpp',
-		'test/src/harness_test.cpp',
-		'test/src/harness_parse_test.cpp',
 		'test/src/mapping.cpp',
 		'test/src/mapping_numa_test.cpp',
 		'test/src/mapping_phte_test.cpp',
 		'test/src/parse_test.cpp',
 		'test/src/timer_test.cpp'
+	],
+	include_directories: inc_dir,
+	dependencies: [
+		gtest_dep
+	],
+	link_with: [
+		lib
+	]
+)
+
+test('gtest', test_exe, protocol: 'gtest', timeout: 30)
+
+harness_test_exe = executable(
+	base_name + '-harness-utest',
+	[
+		'test/src/harness_test.cpp',
+		'test/src/harness_parse_test.cpp'
 	],
 	include_directories: inc_dir,
 	dependencies: [
@@ -119,4 +134,4 @@ test_exe = executable(
 	]
 )
 
-test('gtest', test_exe, protocol: 'gtest', timeout: 300)
+test('harness-gtest', harness_test_exe, protocol: 'gtest', timeout: 300)
