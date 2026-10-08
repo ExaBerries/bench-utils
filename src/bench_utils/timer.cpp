@@ -137,7 +137,7 @@ namespace bench_utils {
 	}
 	#endif
 
-	[[nodiscard]] timer create_precision_timer() noexcept {
+	[[nodiscard]] timer create_fast_timer() noexcept {
 		timer result{};
 		#if defined(_WIN32)
 			LARGE_INTEGER freq;
@@ -155,7 +155,7 @@ namespace bench_utils {
 		return result;
 	}
 
-	[[nodiscard]] int64_t precision_now() noexcept {
+	[[nodiscard]] int64_t fast_now() noexcept {
 		#if defined(_WIN32)
 			LARGE_INTEGER time;
 			QueryPerformanceCounter(&time);

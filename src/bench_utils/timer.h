@@ -27,10 +27,10 @@ namespace bench_utils {
 		timer_source source = timer_source::UNKNOWN;
 	};
 
-	[[nodiscard]] timer create_precision_timer() noexcept;
+	[[nodiscard]] timer create_fast_timer() noexcept;
 	[[nodiscard]] timer create_coarse_timer() noexcept;
 
-	[[nodiscard]] int64_t precision_now() noexcept;
+	[[nodiscard]] int64_t fast_now() noexcept;
 	[[nodiscard]] int64_t coarse_now() noexcept;
 
 	[[nodiscard]] bool will_overflow_within(const timer& t, int64_t now, int64_t seconds) noexcept;
