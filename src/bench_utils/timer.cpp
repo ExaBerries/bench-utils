@@ -3,9 +3,16 @@
 #if defined(_WIN32)
 	#define WIN32_LEAN_AND_MEAN
 	#include <windows.h>
+#elif defined(__linux__)
+	#include <time.h>
+	#include <unistd.h>
 #endif
 
 #include <bench_utils/isa/x86/cpuid.h>
+
+#include <fstream>
+#include <limits>
+#include <string>
 
 namespace bench_utils {
 	[[nodiscard]] static timer_source detect_timer_source([[maybe_unused]] int64_t frequency) noexcept {
@@ -71,49 +78,136 @@ namespace bench_utils {
 		}
 	}
 
-	precision_timer::precision_timer() noexcept {
-		#if defined(_WIN32) && (defined(BENCH_UTILS_ISA_X86_64) || defined(BENCH_UTILS_ISA_X86))
-			LARGE_INTEGER freq;
-			QueryPerformanceFrequency(&freq);
-			this->frequency = freq.QuadPart;
-		#else
-			this->frequency = std::chrono::high_resolution_clock::period::den / std::chrono::high_resolution_clock::period::num;
-		#endif
-		this->source = detect_timer_source(this->frequency);
+	[[nodiscard]] int64_t duration_ms(basic_timer::time_point start, basic_timer::time_point end) noexcept {
+		return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 	}
 
-	[[nodiscard]] int64_t precision_timer::now() const noexcept {
+	[[nodiscard]] int64_t duration_us(basic_timer::time_point start, basic_timer::time_point end) noexcept {
+		return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+	}
+
+	template <typename Duration>
+	[[nodiscard]] static int64_t ticks_to_duration(int64_t start, int64_t end, int64_t frequency) noexcept {
+		if (frequency <= 0ll) {
+			return 0ll;
+		}
+		constexpr int64_t units_per_second = static_cast<int64_t>(Duration::period::den / Duration::period::num);
+		static_assert(units_per_second > 0);
+		const int64_t delta = end - start;
+		return (delta / frequency) * units_per_second + (delta % frequency) * units_per_second / frequency;
+	}
+
+	template <typename Duration>
+	[[nodiscard]] int64_t duration(const timer& t, int64_t start, int64_t end) noexcept {
+		return ticks_to_duration<Duration>(start, end, t.report_frequency);
+	}
+
+	template int64_t duration<std::chrono::milliseconds>(const timer& t, int64_t start, int64_t end) noexcept;
+	template int64_t duration<std::chrono::microseconds>(const timer& t, int64_t start, int64_t end) noexcept;
+	template int64_t duration<std::chrono::nanoseconds>(const timer& t, int64_t start, int64_t end) noexcept;
+	template int64_t duration<std::chrono::seconds>(const timer& t, int64_t start, int64_t end) noexcept;
+
+	#if defined(__linux__)
+	[[nodiscard]] static int64_t detect_underlying_frequency() noexcept {
+		std::ifstream clocksource_file("/sys/devices/system/clocksource/clocksource0/current_clocksource");
+		if (!clocksource_file) {
+			return 0ll;
+		}
+
+		std::string clocksource;
+		std::getline(clocksource_file, clocksource);
+
+		if (clocksource == "tsc") {
+			#if defined(BENCH_UTILS_ISA_X86_64) || defined(BENCH_UTILS_ISA_X86)
+			return static_cast<int64_t>(get_tsc_clock_info().tsc_frequency_hz);
+			#else
+			return 0ll;
+			#endif
+		}
+		if (clocksource == "hpet") {
+			return 14'318'180ll;
+		}
+		if (clocksource == "acpi_pm") {
+			return 3'579'545ll;
+		}
+		if (clocksource == "pit") {
+			return 1'193'182ll;
+		}
+		return 0ll;
+	}
+	#endif
+
+	[[nodiscard]] timer create_precision_timer() noexcept {
+		timer result{};
+		#if defined(_WIN32)
+			LARGE_INTEGER freq;
+			QueryPerformanceFrequency(&freq);
+			result.report_frequency = freq.QuadPart;
+			result.underlying_frequency = result.report_frequency;
+		#elif defined(__linux__)
+			result.report_frequency = 1'000'000'000ll;
+			result.underlying_frequency = detect_underlying_frequency();
+		#else
+			result.report_frequency = std::chrono::high_resolution_clock::period::den / std::chrono::high_resolution_clock::period::num;
+			result.underlying_frequency = 0ll;
+		#endif
+		result.source = detect_timer_source(result.report_frequency);
+		return result;
+	}
+
+	[[nodiscard]] int64_t precision_now() noexcept {
 		#if defined(_WIN32)
 			LARGE_INTEGER time;
 			QueryPerformanceCounter(&time);
 			return time.QuadPart;
-		#else 
+		#elif defined(__linux__)
+			timespec ts;
+			clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+			return static_cast<int64_t>(ts.tv_sec) * 1'000'000'000ll + static_cast<int64_t>(ts.tv_nsec);
+		#else
 			return std::chrono::high_resolution_clock::now().time_since_epoch().count();
 		#endif
 	}
 
-	[[nodiscard]] int64_t precision_timer::duration_ms(int64_t start, int64_t end) const noexcept {
+	[[nodiscard]] timer create_coarse_timer() noexcept {
+		timer result{};
+		result.report_frequency = 1000ll;
 		#if defined(_WIN32)
-			return (end - start) * 1000ll / frequency;
-		#else 
-			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::duration(end - start)).count();
+			DWORD adjustment = 0ul;
+			DWORD increment = 0ul;
+			BOOL enabled = FALSE;
+			if (GetSystemTimeAdjustment(&adjustment, &increment, &enabled) && increment != 0ul) {
+				result.underlying_frequency = 10'000'000ll / static_cast<int64_t>(increment);
+			}
+		#elif defined(__linux__)
+			const long ticks_per_second = sysconf(_SC_CLK_TCK);
+			if (ticks_per_second > 0l) {
+				result.underlying_frequency = static_cast<int64_t>(ticks_per_second);
+			}
 		#endif
+		return result;
 	}
-	
-	[[nodiscard]] int64_t precision_timer::duration_us(int64_t start, int64_t end) const noexcept {
+
+	[[nodiscard]] int64_t coarse_now() noexcept {
 		#if defined(_WIN32)
-			return (end - start) * 1000000ll / frequency;
-		#else 
-			return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::duration(end - start)).count();
+			return static_cast<int64_t>(GetTickCount64());
+		#elif defined(__linux__)
+			timespec ts;
+			clock_gettime(CLOCK_MONOTONIC_COARSE, &ts);
+			return static_cast<int64_t>(ts.tv_sec) * 1000ll + static_cast<int64_t>(ts.tv_nsec) / 1'000'000ll;
+		#else
+			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 		#endif
 	}
 
-	[[nodiscard]] uint64_t get_tick_count_ms() noexcept {
-		#if defined(_WIN32)
-			return GetTickCount64();
-		#else
-			auto duration = std::chrono::steady_clock::now().time_since_epoch();
-			return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(duration).count());
-		#endif
+	[[nodiscard]] static int64_t seconds_until_overflow(int64_t now, int64_t frequency) noexcept {
+		if (frequency <= 0ll) {
+			return std::numeric_limits<int64_t>::max();
+		}
+		return (std::numeric_limits<int64_t>::max() - now) / frequency;
+	}
+
+	[[nodiscard]] bool will_overflow_within(const timer& t, int64_t now, int64_t seconds) noexcept {
+		return seconds_until_overflow(now, t.report_frequency) <= seconds;
 	}
 } // namespace bench_utils

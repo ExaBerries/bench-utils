@@ -106,7 +106,8 @@ test_exe = executable(
 		'test/src/mapping.cpp',
 		'test/src/mapping_numa_test.cpp',
 		'test/src/mapping_phte_test.cpp',
-		'test/src/parse_test.cpp'
+		'test/src/parse_test.cpp',
+		'test/src/timer_test.cpp'
 	],
 	include_directories: inc_dir,
 	dependencies: [
