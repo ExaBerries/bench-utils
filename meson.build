@@ -60,7 +60,8 @@ add_project_arguments(cpp_compiler.get_supported_arguments([
 	'-DBENCH_UTIL_BENCH_VERSION="' + meson.project_version() + '"',
 	'/D_WIN32_VERSION=0x0601', # better win 7 compat
 	'/DNTDDI_VERSION=0x06010000', # better win 7 compat
-	'/D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR' # fix abi issue with older redist
+	'/D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR', # fix abi issue with older redist
+	'/DNOMINMAX' # don't use macro min / max
 ]), language: 'cpp')
 
 lyra_proj = subproject('lyra')
