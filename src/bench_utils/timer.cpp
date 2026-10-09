@@ -144,6 +144,48 @@ namespace bench_utils {
 		}
 	#endif
 
+	#if defined(_WIN32)
+		#ifndef NT_SUCCESS
+		#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
+		#endif
+
+		typedef NTSTATUS(NTAPI* PFN_NtQueryTimerResolution)(
+			PULONG MinimumResolution,
+			PULONG MaximumResolution,
+			PULONG CurrentResolution
+		);
+
+		[[nodiscard]] static int64_t get_nt_timer_resolution_fallback() noexcept {
+			DWORD adjustment = 0ul;
+			DWORD increment = 0ul;
+			BOOL enabled = FALSE;
+			if (GetSystemTimeAdjustment(&adjustment, &increment, &enabled) && increment != 0ul) {
+				return 10'000'000ll / static_cast<int64_t>(increment);
+			}
+			return 0ll;
+		}
+
+		[[nodiscard]] static int64_t get_nt_timer_resolution() noexcept {
+			HMODULE hNtDll = GetModuleHandleW(L"ntdll.dll");
+			if (!hNtDll) {
+				return get_nt_timer_resolution_fallback();
+			}
+
+			auto NtQueryTimerResolution = (PFN_NtQueryTimerResolution)GetProcAddress(hNtDll, "NtQueryTimerResolution");
+			if (!NtQueryTimerResolution) {
+				return get_nt_timer_resolution_fallback();
+			}
+
+			ULONG minRes = 0;
+			ULONG maxRes = 0;
+			ULONG curRes = 0;
+			NTSTATUS status = NtQueryTimerResolution(&minRes, &maxRes, &curRes);
+			if (NT_SUCCESS(status)) {
+				return 10'000'000ll / static_cast<int64_t>(increment);
+			}
+		}
+	#endif
+
 	[[nodiscard]] timer create_fast_timer() noexcept {
 		timer result{};
 		#if defined(_WIN32)
@@ -192,12 +234,7 @@ namespace bench_utils {
 		timer result{};
 		#if defined(_WIN32)
 			result.report_frequency = 1000ll; // GetTickCount64 ticks every millisecond
-			DWORD adjustment = 0ul;
-			DWORD increment = 0ul;
-			BOOL enabled = FALSE;
-			if (GetSystemTimeAdjustment(&adjustment, &increment, &enabled) && increment != 0ul) {
-				result.underlying_frequency = 10'000'000ll / static_cast<int64_t>(increment);
-			}
+			result.underlying_frequency = get_nt_timer_resolution();
 		#elif defined(__linux__)
 			result.report_frequency = 1'000ll;
 			result.underlying_frequency = get_linux_clk_frequency_for(CLOCK_MONOTONIC_COARSE);
