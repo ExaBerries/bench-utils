@@ -5,7 +5,7 @@
 namespace bench_utils {
 	[[nodiscard]] std::string format_uint64_t(uint64_t val, std::string_view unit_str) noexcept {
 		static constexpr std::array units{
-			"B", "K", "M", "G", "T", "P", "E"
+			"", "K", "M", "G", "T", "P", "E"
 		};
 
 		double size = static_cast<double>(val);
