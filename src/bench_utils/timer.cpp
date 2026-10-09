@@ -3,6 +3,7 @@
 #if defined(_WIN32)
 	#define WIN32_LEAN_AND_MEAN
 	#include <windows.h>
+	#include <winternl.h>
 #elif defined(__linux__)
 	#include <time.h>
 #endif
@@ -142,9 +143,7 @@ namespace bench_utils {
 			const int64_t nanoseconds = static_cast<int64_t>(res.tv_sec) * 1'000'000'000ll + static_cast<int64_t>(res.tv_nsec);
 			return nanoseconds > 0ll ? 1'000'000'000ll / nanoseconds : 1'000ll;
 		}
-	#endif
-
-	#if defined(_WIN32)
+	#elif defined(_WIN32)
 		#ifndef NT_SUCCESS
 		#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 		#endif
@@ -171,7 +170,7 @@ namespace bench_utils {
 				return get_nt_timer_resolution_fallback();
 			}
 
-			auto NtQueryTimerResolution = (PFN_NtQueryTimerResolution)GetProcAddress(hNtDll, "NtQueryTimerResolution");
+			auto NtQueryTimerResolution = reinterpret_cast<PFN_NtQueryTimerResolution>(GetProcAddress(hNtDll, "NtQueryTimerResolution"));
 			if (!NtQueryTimerResolution) {
 				return get_nt_timer_resolution_fallback();
 			}
@@ -181,8 +180,9 @@ namespace bench_utils {
 			ULONG curRes = 0;
 			NTSTATUS status = NtQueryTimerResolution(&minRes, &maxRes, &curRes);
 			if (NT_SUCCESS(status)) {
-				return 10'000'000ll / static_cast<int64_t>(increment);
+				return 10'000'000ll / static_cast<int64_t>(curRes);
 			}
+			return get_nt_timer_resolution_fallback();
 		}
 	#endif
 
