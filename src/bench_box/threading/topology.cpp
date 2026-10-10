@@ -5,6 +5,7 @@
 #include <iostream>
 #include <charconv>
 #include <algorithm>
+#include <set>
 
 #if defined(_WIN32)
 	#define WIN32_LEAN_AND_MEAN
@@ -70,7 +71,7 @@ namespace bench_box {
 		// cores
 		std::map<uint32_t, std::map<uint32_t, std::map<uint32_t, core>>> topo;
 
-		uint32_t max_perf_level = 0;
+		std::set<uint32_t> eff_classes{};
 		uint32_t core_counter = 0;
 
 		ptr = buffer.data();
@@ -82,7 +83,7 @@ namespace bench_box {
 				core c;
 				c.core_id = core_counter++;
 				c.perf_level = curr->Processor.EfficiencyClass;
-				max_perf_level = std::max(max_perf_level, c.perf_level);
+				eff_classes.insert(c.perf_level);
 
 				uint32_t node_id = 0;
 
@@ -109,18 +110,21 @@ namespace bench_box {
 			ptr += curr->Size;
 		}
 
-		// homogeneous: all cores are tier 0
-		if (max_perf_level == 0) {
-			for (auto& [_, llcs] : topo) {
-				for (auto& [__, cores] : llcs) {
-					for (auto& [___, c] : cores) {
-						c.perf_level = 0;
-					}
+		// rank the distinct efficiency classes descending: the highest class becomes tier 0
+		std::map<uint32_t, uint32_t> eff_to_tier;
+		for (auto it = eff_classes.rbegin(); it != eff_classes.rend(); ++it) {
+			eff_to_tier[*it] = static_cast<uint32_t>(eff_to_tier.size());
+		}
+
+		for (auto& [_, llcs] : topo) {
+			for (auto& [__, cores] : llcs) {
+				for (auto& [___, c] : cores) {
+					c.perf_level = eff_to_tier[c.perf_level];
 				}
 			}
 		}
 
-		tree.perf_level_count = max_perf_level + 1;
+		tree.perf_level_count = static_cast<uint32_t>(eff_to_tier.size());
 
 		for (auto& [nid, llcs] : topo) {
 			numa_node node{nid};
