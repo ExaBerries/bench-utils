@@ -76,4 +76,4 @@ namespace bench_box {
 			}
 		#endif
 	} // namespace simd
-} // namspace fdtd_bench
+} // namspace bench_box

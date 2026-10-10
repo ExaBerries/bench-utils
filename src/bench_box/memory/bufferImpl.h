@@ -154,4 +154,4 @@ namespace bench_box {
 	bool operator!=(buffer<TYPE, ALLOCATOR>& buffer, const void* ptr) noexcept {
 		return buffer.data != ptr;
 	}
-} // namspace fdtd_bench
+} // namspace bench_box
