@@ -98,7 +98,7 @@ bench_box_dep = declare_dependency(
 gtest_dep = dependency('gtest_main', static: true)
 
 test_exe = executable(
-	base_name + '-utest',
+	base_name + 'utest',
 	[
 		'test/src/buffer_test.cpp',
 		'test/src/mapping.cpp',
@@ -119,7 +119,7 @@ test_exe = executable(
 test('gtest', test_exe, protocol: 'gtest', timeout: 30)
 
 harness_test_exe = executable(
-	base_name + '-harness-utest',
+	base_name + 'harness-utest',
 	[
 		'test/src/harness_test.cpp',
 		'test/src/harness_parse_test.cpp'
