@@ -66,7 +66,7 @@ add_project_arguments(cpp_compiler.get_supported_arguments([
 lyra_proj = subproject('lyra')
 lyra_dep = lyra_proj.get_variable('lyra_dep')
 
-base_name = 'bench-box-' + meson.project_version()
+base_name = 'bench-box-'
 
 sources_core = [
 	'src/bench_box/memory/memory.cpp',
