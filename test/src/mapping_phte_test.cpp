@@ -2,7 +2,7 @@
 #include "mapping.h"
 
 TEST(MappingPHTE, i7700k) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_7700k_tree();
 	auto mapping = create_mapping_phte(tree);
 
@@ -22,7 +22,7 @@ TEST(MappingPHTE, i7700k) {
 }
 
 TEST(MappingPHTE, DualSocket2c2t) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_2s2c2t_tree();
 	auto mapping = create_mapping_phte(tree);
 
@@ -42,7 +42,7 @@ TEST(MappingPHTE, DualSocket2c2t) {
 }
 
 TEST(MappingPHTE, Alder2p2e) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_alder2p2e_tree();
 	auto mapping = create_mapping_phte(tree);
 
@@ -62,7 +62,7 @@ TEST(MappingPHTE, Alder2p2e) {
 }
 
 TEST(MappingPHTE, Meteor2p2e2lpe) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_meteor2p2e2lpe_tree();
 	auto mapping = create_mapping_phte(tree);
 
@@ -84,7 +84,7 @@ TEST(MappingPHTE, Meteor2p2e2lpe) {
 }
 
 TEST(MappingPHTE, MultiCCD) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_2ccd_tree();
 	auto mapping = create_mapping_phte(tree);
 
@@ -111,7 +111,7 @@ TEST(MappingPHTE, MultiCCD) {
 }
 
 TEST(MappingPHTE, DualSocketMultiCCD) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_2s2ccd_tree();
 	auto mapping = create_mapping_phte(tree);
 

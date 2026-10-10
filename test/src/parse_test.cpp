@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include <bench_utils/parse.h>
+#include <bench_box/parse.h>
 
 TEST(Parse, sv_uint64) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	EXPECT_EQ(*parse_int<uint64_t>("123"), 123ull);
 	EXPECT_EQ(*parse_int<uint64_t>("70"), 70ull);
@@ -16,7 +16,7 @@ TEST(Parse, sv_uint64) {
 }
 
 TEST(Parse, sv_uint32) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	EXPECT_EQ(*parse_int<uint32_t>("123"), 123u);
 	EXPECT_EQ(*parse_int<uint32_t>("70"), 70u);

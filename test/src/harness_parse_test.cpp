@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include <bench_utils/harness/harness_helpers.h>
+#include <bench_box/harness/harness_helpers.h>
 
 TEST(HarnessParse, TokenizeRange) {
-	using namespace bench_utils::sweep_helpers;
+	using namespace bench_box::sweep_helpers;
 
 	{
 		auto parsed_tokens = parse_min_max_stride_str("1-22:3");
@@ -48,7 +48,7 @@ TEST(HarnessParse, TokenizeRange) {
 }
 
 TEST(HarnessParse, ParseRange) {
-	using namespace bench_utils::sweep_helpers;
+	using namespace bench_box::sweep_helpers;
 
 	{
 		auto parsed_range_opt = parse_range("1-22:3", 2ull, 3ull, 1ull);
@@ -88,7 +88,7 @@ TEST(HarnessParse, ParseRange) {
 }
 
 TEST(HarnessParse, FilterRange) {
-	using namespace bench_utils::sweep_helpers;
+	using namespace bench_box::sweep_helpers;
 
 	static constexpr auto VALID_ISAS = std::to_array<std::string_view>({
 		"sse2",
@@ -165,7 +165,7 @@ TEST(HarnessParse, FilterRange) {
 }
 
 TEST(HarnessParse, ParseRangeRejectsBadStride) {
-	using namespace bench_utils::sweep_helpers;
+	using namespace bench_box::sweep_helpers;
 
 	{
 		auto parsed_range_opt = parse_range("1-22:0", 2ull, 3ull, 1ull);
@@ -179,7 +179,7 @@ TEST(HarnessParse, ParseRangeRejectsBadStride) {
 }
 
 TEST(HarnessParse, FilterNumericRange) {
-	using namespace bench_utils::sweep_helpers;
+	using namespace bench_box::sweep_helpers;
 
 	static constexpr auto VALID_SIZES = std::to_array<uint64_t>({
 		4ull,
@@ -229,7 +229,7 @@ TEST(HarnessParse, FilterNumericRange) {
 }
 
 TEST(HarnessParse, StrideMatchesExpandRange) {
-	using namespace bench_utils::sweep_helpers;
+	using namespace bench_box::sweep_helpers;
 
 	static constexpr auto VALID_SIZES = std::to_array<uint64_t>({
 		4ull,
@@ -257,7 +257,7 @@ TEST(HarnessParse, StrideMatchesExpandRange) {
 }
 
 TEST(HarnessParse, ExpandRangeNoWrap) {
-	using namespace bench_utils::sweep_helpers;
+	using namespace bench_box::sweep_helpers;
 
 	{
 		auto range = parse_range("5-11:18446744073709551615", uint64_t{5}, uint64_t{11}, uint64_t{1});
@@ -291,8 +291,8 @@ TEST(HarnessParse, ExpandRangeNoWrap) {
 }
 
 TEST(HarnessParse, MakeNumericSweep) {
-	using namespace bench_utils;
-	using namespace bench_utils::sweep_helpers;
+	using namespace bench_box;
+	using namespace bench_box::sweep_helpers;
 
 	struct dummy_context {};
 
@@ -362,8 +362,8 @@ TEST(HarnessParse, MakeNumericSweep) {
 }
 
 TEST(HarnessParse, MakeFilteredSweepList) {
-	using namespace bench_utils;
-	using namespace bench_utils::sweep_helpers;
+	using namespace bench_box;
+	using namespace bench_box::sweep_helpers;
 
 	static constexpr auto VALID_SIZES = std::to_array<uint64_t>({
 		4ull,

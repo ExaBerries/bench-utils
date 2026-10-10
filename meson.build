@@ -1,5 +1,5 @@
 project(
-	'bench-util',
+	'bench-box',
 	['c', 'cpp'],
 	default_options: [
 		'warning_level=3',
@@ -7,8 +7,7 @@ project(
 		'cpp_rtti=false',
 		'b_lto=false',
 	],
-	meson_version: '>=1.1.0',
-	version: '0.1.0'
+	meson_version: '>=1.1.0'
 )
 
 cpp_compiler = meson.get_compiler('cpp')
@@ -57,7 +56,7 @@ add_project_arguments(cpp_compiler.get_supported_arguments([
 	'-Wlifetime',
 	'-Weffc++',
 	'-fexperimental-library',
-	'-DBENCH_UTIL_BENCH_VERSION="' + meson.project_version() + '"',
+	'-DBENCH_BOX_BENCH_VERSION="' + meson.project_version() + '"',
 	'/D_WIN32_VERSION=0x0601', # better win 7 compat
 	'/DNTDDI_VERSION=0x06010000', # better win 7 compat
 	'/D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR', # fix abi issue with older redist
@@ -67,16 +66,16 @@ add_project_arguments(cpp_compiler.get_supported_arguments([
 lyra_proj = subproject('lyra')
 lyra_dep = lyra_proj.get_variable('lyra_dep')
 
-base_name = 'bench-utils-' + meson.project_version()
+base_name = 'bench-box-' + meson.project_version()
 
 sources_core = [
-	'src/bench_utils/memory/memory.cpp',
-	'src/bench_utils/threading/threading.cpp',
-	'src/bench_utils/threading/topology.cpp',
-	'src/bench_utils/timer.cpp',
-	'src/bench_utils/format.cpp',
-	'src/bench_utils/console.cpp',
-	'src/bench_utils/isa/x86/cpuid.cpp'
+	'src/bench_box/memory/memory.cpp',
+	'src/bench_box/threading/threading.cpp',
+	'src/bench_box/threading/topology.cpp',
+	'src/bench_box/timer.cpp',
+	'src/bench_box/format.cpp',
+	'src/bench_box/console.cpp',
+	'src/bench_box/isa/x86/cpuid.cpp'
 ]
 
 inc_dir = 'src'
@@ -91,7 +90,7 @@ lib = static_library(
 	install: false
 )
 
-bench_utils_dep = declare_dependency(
+bench_box_dep = declare_dependency(
 	include_directories: inc_dir,
 	link_with: lib,
 )

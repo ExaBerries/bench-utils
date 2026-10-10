@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
-#include <bench_utils/timer.h>
+#include <bench_box/timer.h>
 
 #include <chrono>
 #include <limits>
 #include <thread>
 #include <type_traits>
 
-static_assert(std::is_trivially_copyable_v<bench_utils::timer>);
-static_assert(std::is_trivially_destructible_v<bench_utils::timer>);
+static_assert(std::is_trivially_copyable_v<bench_box::timer>);
+static_assert(std::is_trivially_destructible_v<bench_box::timer>);
 
 TEST(Timer, fast_timer_duration) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	const timer t = create_fast_timer();
 	ASSERT_GT(t.report_frequency, 0);
@@ -30,7 +30,7 @@ TEST(Timer, fast_timer_duration) {
 }
 
 TEST(Timer, coarse_timer_duration) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	const timer t = create_coarse_timer();
 	ASSERT_GT(t.report_frequency, 0);
@@ -52,7 +52,7 @@ TEST(Timer, coarse_timer_duration) {
 }
 
 TEST(Timer, coarse_agrees_with_fast) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	const timer fast = create_fast_timer();
 	const timer coarse = create_coarse_timer();
@@ -72,7 +72,7 @@ TEST(Timer, coarse_agrees_with_fast) {
 }
 
 TEST(Timer, overflow_check) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	const timer fast = create_fast_timer();
 	const timer coarse = create_coarse_timer();
@@ -86,7 +86,7 @@ TEST(Timer, overflow_check) {
 }
 
 TEST(Timer, aggregate_construction) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	const timer t{.report_frequency = 1'000'000'000ll, .underlying_frequency = 0ll, .source = timer_source::INVARIANT_TSC};
 	ASSERT_EQ(t.report_frequency, 1'000'000'000ll);

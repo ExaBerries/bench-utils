@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include <bench_utils/harness/harness.h>
-#include <bench_utils/harness/harness_helpers.h>
+#include <bench_box/harness/harness.h>
+#include <bench_box/harness/harness_helpers.h>
 
-namespace bench_utils {
+namespace bench_box {
 	struct cmdline_config {
 		std::string test = "";
 		uint64_t size = 10u;
@@ -146,10 +146,10 @@ namespace bench_utils {
 			);
 		}
 	};
-} // namespace bench_utils
+} // namespace bench_box
 
 TEST(Harness, NoneSweep) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	cmdline_config config;
 
@@ -183,7 +183,7 @@ TEST(Harness, NoneSweep) {
 }
 
 TEST(Harness, SizeSweepDefault) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	cmdline_config config;
 
@@ -217,7 +217,7 @@ TEST(Harness, SizeSweepDefault) {
 }
 
 TEST(Harness, IsaSweepDefault) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	cmdline_config config;
 
@@ -251,7 +251,7 @@ TEST(Harness, IsaSweepDefault) {
 }
 
 TEST(Harness, IsaSweepRangeDefault) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	cmdline_config config;
 
@@ -287,7 +287,7 @@ TEST(Harness, IsaSweepRangeDefault) {
 }
 
 TEST(Harness, IsaSweepRange) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	cmdline_config config;
 
@@ -323,7 +323,7 @@ TEST(Harness, IsaSweepRange) {
 }
 
 TEST(Harness, IsaList) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	cmdline_config config;
 

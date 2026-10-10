@@ -1,6 +1,6 @@
 #include "mapping.h"
 
-namespace bench_utils {
+namespace bench_box {
 	// struct logical_processor {
 	// 	uint32_t thread_index = 0u;
 	// 	uint32_t core_id = 0u; // to easily find the actual core without making a LUT
@@ -301,4 +301,4 @@ namespace bench_utils {
 			1u // perf_level_count
 		};
 	}
-} // namespace bench_utils
+} // namespace bench_box

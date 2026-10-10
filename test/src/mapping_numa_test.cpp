@@ -2,7 +2,7 @@
 #include "mapping.h"
 
 TEST(MappingNuma, i7700k) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_7700k_tree();
 	auto mapping = create_mapping_numa(tree);
 
@@ -22,7 +22,7 @@ TEST(MappingNuma, i7700k) {
 }
 
 TEST(MappingNuma, DualSocket2c2t) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_2s2c2t_tree();
 	auto mapping = create_mapping_numa(tree);
 
@@ -42,7 +42,7 @@ TEST(MappingNuma, DualSocket2c2t) {
 }
 
 TEST(MappingNuma, Alder2p2e) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_alder2p2e_tree();
 	auto mapping = create_mapping_numa(tree);
 
@@ -60,7 +60,7 @@ TEST(MappingNuma, Alder2p2e) {
 }
 
 TEST(MappingNuma, Meteor2p2e2lpe) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_meteor2p2e2lpe_tree();
 	auto mapping = create_mapping_numa(tree);
 
@@ -82,7 +82,7 @@ TEST(MappingNuma, Meteor2p2e2lpe) {
 }
 
 TEST(MappingNuma, MultiCCD) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_2ccd_tree();
 	auto mapping = create_mapping_numa(tree);
 
@@ -110,7 +110,7 @@ TEST(MappingNuma, MultiCCD) {
 }
 
 TEST(MappingNuma, DualSocketMultiCCD) {
-	using namespace bench_utils;
+	using namespace bench_box;
 	auto tree = create_2s2ccd_tree();
 	auto mapping = create_mapping_numa(tree);
 

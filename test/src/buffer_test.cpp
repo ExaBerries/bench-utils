@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
-#include <bench_utils/memory/memory.h>
-#include <bench_utils/memory/buffer.h>
+#include <bench_box/memory/memory.h>
+#include <bench_box/memory/buffer.h>
 
 TEST(Buffer, DefaultAlloc) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	buffer<uint32_t> buf(64);
 	buf.free();
 }
 
 TEST(Buffer, NonLP) {
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	lp_flex_allocator_t<uint32_t> alloc(false);
 
@@ -20,7 +20,7 @@ TEST(Buffer, NonLP) {
 }
 
 TEST(Buffer, DISABLED_LP) { // fails if it can't allocate a large page, may not be an error depending on user privileges
-	using namespace bench_utils;
+	using namespace bench_box;
 
 	lp_flex_allocator_t<uint32_t> alloc(true);
 
